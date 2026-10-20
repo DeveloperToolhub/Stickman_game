@@ -1,0 +1,2176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Stickman Card Pack Opening Simulator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            bg: '#0B0F19',
+                            card: '#151C2C',
+                            accent: '#6366F1',
+                            gold: '#F59E0B'
+                        }
+                    },
+                    animation: {
+                        'spin-slow': 'spin 12s linear infinite',
+                        'pulse-glow': 'pulseGlow 2s ease-in-out infinite',
+                        'float': 'float 3s ease-in-out infinite',
+                        'beam': 'beamRotate 20s linear infinite'
+                    },
+                    keyframes: {
+                        pulseGlow: {
+                            '0%, 100%': { opacity: '0.4', transform: 'scale(1)' },
+                            '50%': { opacity: '0.8', transform: 'scale(1.08)' }
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-8px)' }
+                        },
+                        beamRotate: {
+                            '0%': { transform: 'rotate(0deg)' },
+                            '100%': { transform: 'rotate(360deg)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0B0F19;
+            color: #F3F4F6;
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        
+        /* Glassmorphism & Animations */
+        .glass-panel {
+            background: rgba(21, 28, 44, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .unboxing-overlay {
+            background: rgba(5, 7, 13, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+
+        /* 3D Card Flip Effects */
+        .perspective-1000 {
+            perspective: 1000px;
+        }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+
+        .card-inner.is-flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            border-radius: 1rem;
+        }
+
+        .card-back {
+            transform: rotateY(180deg);
+        }
+
+        /* Light Rays effect for Mythic/Legendary */
+        .light-beam {
+            background: conic-gradient(from 0deg, transparent 0deg, rgba(255, 255, 255, 0.15) 20deg, transparent 40deg, rgba(255, 255, 255, 0.15) 60deg, transparent 80deg, rgba(255, 255, 255, 0.15) 100deg, transparent 120deg, rgba(255, 255, 255, 0.15) 140deg, transparent 160deg, rgba(255, 255, 255, 0.15) 180deg, transparent 200deg, rgba(255, 255, 255, 0.15) 220deg, transparent 240deg, rgba(255, 255, 255, 0.15) 260deg, transparent 280deg, rgba(255, 255, 255, 0.15) 300deg, transparent 320deg, rgba(255, 255, 255, 0.15) 340deg, transparent 360deg);
+        }
+
+        /* ---------- Shop & pack visuals ---------- */
+        .pack-card { transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease; }
+        .pack-card:hover { transform: translateY(-4px); border-color: rgba(129,140,248,.5); box-shadow: 0 20px 40px -18px var(--pack-glow, rgba(99,102,241,.5)); }
+        .pack-shine::after { content: ''; position: absolute; inset: 0; background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,.28) 50%, transparent 70%); transform: translateX(-100%); transition: transform .9s ease; }
+        .pack-card:hover .pack-shine::after { transform: translateX(100%); }
+
+        /* ---------- Unboxing FX ---------- */
+        .rays { background: repeating-conic-gradient(from 0deg, var(--fx-color) 0deg 8deg, transparent 8deg 24deg); -webkit-mask-image: radial-gradient(circle, #000 8%, transparent 62%); mask-image: radial-gradient(circle, #000 8%, transparent 62%); }
+        @keyframes raysSpin { to { transform: rotate(360deg); } }
+        .rays-spin { animation: raysSpin 18s linear infinite; }
+        @keyframes packShake { 0%,100% { transform: rotate(0) scale(1); } 10% { transform: rotate(-5deg); } 20% { transform: rotate(5deg); } 30% { transform: rotate(-7deg) scale(1.02); } 40% { transform: rotate(7deg) scale(1.02); } 50% { transform: rotate(-9deg) scale(1.05); } 60% { transform: rotate(9deg) scale(1.05); } 70% { transform: rotate(-11deg) scale(1.08); } 80% { transform: rotate(11deg) scale(1.08); } 90% { transform: rotate(0) scale(1.12); } }
+        .pack-shaking { animation: packShake 1.6s ease-in-out forwards; }
+        @keyframes packBurst { from { transform: scale(1.12); opacity: 1; } to { transform: scale(2.4); opacity: 0; } }
+        .pack-burst { animation: packBurst .5s ease-out forwards; }
+        @keyframes cardRise { from { opacity: 0; transform: translateY(60px) scale(.7); } to { opacity: 1; transform: none; } }
+        .card-rise { animation: cardRise .55s cubic-bezier(.2,.9,.3,1.25) both; }
+        @keyframes screenShake { 0%,100% { transform: translate(0,0); } 20% { transform: translate(-8px,4px); } 40% { transform: translate(8px,-4px); } 60% { transform: translate(-6px,2px); } 80% { transform: translate(4px,-2px); } }
+        .screen-shake { animation: screenShake .5s linear; }
+
+        /* ---------- Secret card ---------- */
+        .secret-label { background: linear-gradient(90deg,#f0abfc,#67e8f9,#fde68a,#86efac,#f0abfc); background-size: 200% auto; -webkit-background-clip: text; background-clip: text; color: transparent; animation: secretShimmer 3s linear infinite; font-weight: 900; }
+        @keyframes secretShimmer { to { background-position: 200% center; } }
+        .secret-card { box-shadow: 0 0 0 2px rgba(134,239,172,.45), 0 0 24px rgba(132,204,22,.35); animation: secretPulse 2.4s ease-in-out infinite; }
+        @keyframes secretPulse { 50% { box-shadow: 0 0 0 2px rgba(134,239,172,.8), 0 0 36px rgba(132,204,22,.55); } }
+
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(11, 15, 25, 0.5);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.4);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(99, 102, 241, 0.7);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between overflow-x-hidden">
+
+    <!-- TOP HEADER / NAV BAR -->
+    <header class="sticky top-0 z-40 glass-panel border-b border-gray-800 px-4 py-3">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <!-- Game Title & Logo -->
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center font-bold text-xl shadow-lg shadow-indigo-500/30">
+                    ⚡
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-base md:text-lg tracking-wide text-white flex items-center gap-2">
+                        STICKMAN LEGENDS
+                    </h1>
+                    <p class="text-xs text-gray-400 hidden sm:block">Card Pack Opening Simulator</p>
+                </div>
+            </div>
+
+            <!-- Currency & Global Actions -->
+            <div class="flex items-center gap-3 sm:gap-4">
+                <!-- Coins Display -->
+                <div class="flex items-center gap-2 bg-gray-900/80 border border-yellow-500/30 px-3 py-1.5 rounded-xl shadow-inner">
+                    <span class="text-yellow-400 text-lg">🪙</span>
+                    <span id="global-coins" class="font-bold text-yellow-400 text-sm sm:text-base">0</span>
+                </div>
+
+                <!-- Backup & Settings Button -->
+                <button onclick="toggleModal('backup-modal', true)" class="p-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white transition text-sm flex items-center gap-1.5 border border-gray-700" title="Backup & Restore Data">
+                    💾 <span class="hidden md:inline text-xs font-semibold">Backup</span>
+                </button>
+
+                <!-- Phone Mode Toggle -->
+                <button id="phone-mode-btn" onclick="togglePhoneMode()" class="p-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white transition text-sm flex items-center gap-1.5 border border-gray-700" title="Toggle Compact Mobile Mode">
+                    📱 <span class="hidden md:inline text-xs font-semibold">Mobile UI</span>
+                </button>
+
+                <!-- How to Play Tutorial -->
+                <button onclick="toggleModal('tutorial-modal', true)" class="p-2 rounded-xl bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 border border-indigo-500/40 transition text-sm flex items-center gap-1.5">
+                    ❓ <span class="hidden md:inline text-xs font-semibold">Help</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main id="main-layout" class="max-w-7xl mx-auto w-full px-4 py-6 flex-1 flex flex-col gap-8">
+        
+        <!-- NAVIGATION TABS -->
+        <nav class="flex items-center justify-center p-1.5 rounded-2xl bg-gray-900/80 border border-gray-800 max-w-2xl mx-auto w-full gap-1">
+            <button onclick="switchTab('shop')" id="tab-btn-shop" class="nav-tab active flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 bg-indigo-600 text-white shadow-lg">
+                🛒 Shop & Packs
+            </button>
+            <button onclick="switchTab('training')" id="tab-btn-training" class="nav-tab flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 text-gray-400 hover:text-white">
+                ⚔️ Training <span class="bg-indigo-900/60 text-indigo-300 text-[10px] px-1.5 py-0.5 rounded-md border border-indigo-500/30">10K Cap</span>
+            </button>
+            <button onclick="switchTab('forge')" id="tab-btn-forge" class="nav-tab flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 text-gray-400 hover:text-white">
+                🎨 Forge
+            </button>
+            <button onclick="switchTab('album')" id="tab-btn-album" class="nav-tab flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 text-gray-400 hover:text-white">
+                📖 Album
+            </button>
+            <button onclick="switchTab('codes')" id="tab-btn-codes" class="nav-tab flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 text-gray-400 hover:text-white">
+                🎁 Codes
+            </button>
+        </nav>
+
+        <!-- VIEW: CODE REDEEMER -->
+        <section id="view-codes" class="tab-view hidden space-y-6">
+            <div class="rounded-3xl border border-indigo-500/20 bg-gradient-to-br from-indigo-900/50 via-gray-900 to-purple-900/40 p-6 sm:p-8 text-center space-y-2">
+                <p class="text-[10px] font-black uppercase tracking-[0.25em] text-indigo-300">Rewards</p>
+                <h2 class="text-2xl sm:text-4xl font-black text-white tracking-tight">Redeem a Code</h2>
+                <p class="text-xs sm:text-sm text-gray-400 max-w-md mx-auto">Enter a code to get coins or unlock a secret card. Each code works once per account.</p>
+            </div>
+
+            <div class="max-w-md mx-auto rounded-2xl border border-gray-800 bg-gray-900/70 p-5 space-y-3">
+                <label for="redeem-input-main" class="text-xs font-bold text-gray-300">Code</label>
+                <div class="flex gap-2">
+                    <input id="redeem-input-main" type="text" placeholder="Enter code" autocomplete="off" spellcheck="false"
+                        onkeydown="if (event.key === 'Enter') redeemCode()"
+                        class="flex-1 min-w-0 px-3 py-2.5 rounded-xl bg-gray-950 border border-gray-700 text-white text-sm uppercase focus:outline-none focus:border-indigo-500">
+                    <button onclick="redeemCode()" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-extrabold text-xs sm:text-sm text-white shadow-lg shadow-indigo-500/25 transition">Redeem</button>
+                </div>
+                <p id="redeem-msg-main" class="text-sm font-bold min-h-[1.25rem]"></p>
+            </div>
+        </section>
+
+        <!-- VIEW 1: SHOP & PACKS -->
+        <section id="view-shop" class="tab-view space-y-6">
+            <div class="relative overflow-hidden rounded-3xl border border-indigo-500/20 bg-gradient-to-br from-indigo-900/50 via-gray-900 to-purple-900/40 p-6 sm:p-8 text-center space-y-2">
+                <p class="text-[10px] font-black uppercase tracking-[0.25em] text-indigo-300">Card Shop</p>
+                <h2 class="text-2xl sm:text-4xl font-black text-white tracking-tight">Pick Your Pack</h2>
+                <p class="text-xs sm:text-sm text-gray-400 max-w-md mx-auto">Ten themed packs, from starter recruits to mythic gods. Every pull is a surprise.</p>
+            </div>
+
+            <!-- PACK GRID -->
+            <div id="pack-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Packs rendered dynamically via JS -->
+            </div>
+        </section>
+
+        <!-- VIEW 2: TRAINING MINIGAMES -->
+        <section id="view-training" class="tab-view hidden space-y-6">
+            <!-- Daily Progress Header -->
+            <div class="glass-panel p-6 rounded-2xl border border-gray-800 space-y-4 max-w-3xl mx-auto">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                        <h3 class="text-xl font-extrabold text-white flex items-center gap-2">
+                            ⚔️ Daily Stickman Training Dojo
+                        </h3>
+                        <p class="text-xs text-gray-400">Train your stickmen in minigames to earn coins!</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-xs text-gray-400">Daily Cap Tracker:</span>
+                        <p id="training-cap-text" class="text-lg font-bold text-yellow-400">0 / 10,000 Coins</p>
+                    </div>
+                </div>
+
+                <!-- Cap Progress Bar -->
+                <div class="w-full bg-gray-900 h-3 rounded-full overflow-hidden p-0.5 border border-gray-800">
+                    <div id="training-progress-bar" class="bg-gradient-to-r from-yellow-500 to-amber-300 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- MINIGAME SELECTOR & ARENA -->
+            <div class="max-w-3xl mx-auto space-y-6">
+                <!-- Game Tabs -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <button onclick="selectMinigame('timing')" id="mg-btn-timing" class="mg-tab p-3 rounded-xl bg-gray-800 border border-gray-700 text-xs font-bold text-white text-center hover:bg-gray-700 transition">
+                        🎯 Reflex Strike
+                    </button>
+                    <button onclick="selectMinigame('speed')" id="mg-btn-speed" class="mg-tab p-3 rounded-xl bg-gray-900 border border-gray-800 text-xs font-bold text-gray-400 text-center hover:bg-gray-700 transition">
+                        🥊 Speed Punch
+                    </button>
+                    <button onclick="selectMinigame('target')" id="mg-btn-target" class="mg-tab p-3 rounded-xl bg-gray-900 border border-gray-800 text-xs font-bold text-gray-400 text-center hover:bg-gray-700 transition">
+                        🏹 Target Reflex
+                    </button>
+                    <button onclick="selectMinigame('power')" id="mg-btn-power" class="mg-tab p-3 rounded-xl bg-gray-900 border border-gray-800 text-xs font-bold text-gray-400 text-center hover:bg-gray-700 transition">
+                        🏋️ Power Lift
+                    </button>
+                </div>
+
+                <!-- MINIGAME PLAY ARENA CONTAINER -->
+                <div class="glass-panel p-6 rounded-2xl border border-gray-800 min-h-[280px] flex flex-col items-center justify-center text-center relative overflow-hidden" id="minigame-arena">
+                    <!-- Game content rendered dynamically -->
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 3: FORGE / CUSTOM CREATOR -->
+        <section id="view-forge" class="tab-view hidden space-y-6">
+            <div class="text-center space-y-2">
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-white">Custom Stickman Forge</h2>
+                <p class="text-xs sm:text-sm text-gray-400">Design your own stickman fighter card and add it to your collection!</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start max-w-5xl mx-auto">
+                <!-- Left: Controls -->
+                <div class="lg:col-span-7 glass-panel p-6 rounded-2xl border border-gray-800 space-y-4">
+                    <div class="space-y-1">
+                        <label class="text-xs font-bold text-gray-400">Card & Stickman Name</label>
+                        <input type="text" id="forge-name" value="Shadow Slayer" maxlength="22" oninput="updateForgePreview()" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="space-y-1">
+                            <label class="text-xs font-bold text-gray-400">Rarity Tier</label>
+                            <select id="forge-rarity" onchange="updateForgePreview()" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+                                <option value="Common">Common (Free)</option>
+                                <option value="Uncommon">Uncommon (50g)</option>
+                                <option value="Rare">Rare (150g)</option>
+                                <option value="Epic">Epic (400g)</option>
+                                <option value="Legendary">Legendary (1,000g)</option>
+                                <option value="Mythic">Mythic (2,500g)</option>
+                            </select>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-xs font-bold text-gray-400">Pose Action</label>
+                            <select id="forge-pose" onchange="updateForgePreview()" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+                                <option value="Heroic">Heroic Stance</option>
+                                <option value="Attacking">Attacking Slash</option>
+                                <option value="Floating">Floating Magic</option>
+                                <option value="Dual Wield">Dual Wield Stance</option>
+                                <option value="Ninja">Ninja Stealth</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="space-y-1">
+                            <label class="text-xs font-bold text-gray-400">Headgear Style</label>
+                            <select id="forge-head" onchange="updateForgePreview()" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+                                <option value="None">None</option>
+                                <option value="Crown">Golden Crown</option>
+                                <option value="Ninja Headband">Ninja Band</option>
+                                <option value="Demon Horns">Demon Horns</option>
+                                <option value="Wizard Hat">Wizard Hat</option>
+                                <option value="Cyber Visor">Cyber Visor</option>
+                                <option value="Pumpkin Head">Pumpkin Head</option>
+                                <option value="Viking Helm">Viking Helm</option>
+                            </select>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-xs font-bold text-gray-400">Weapon Gear</label>
+                            <select id="forge-weapon" onchange="updateForgePreview()" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+                                <option value="None">Unarmed</option>
+                                <option value="Katana">Katana Sword</option>
+                                <option value="Greatsword">Flaming Greatsword</option>
+                                <option value="Staff">Magic Staff</option>
+                                <option value="Scythe">Reaper Scythe</option>
+                                <option value="Dual Daggers">Dual Daggers</option>
+                                <option value="Bow">Hunter Bow</option>
+                                <option value="Saber">Laser Saber</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="space-y-1">
+                            <label class="text-xs font-bold text-gray-400">Stickman Color</label>
+                            <input type="color" id="forge-color-stick" value="#ffffff" onchange="updateForgePreview()" class="w-full h-10 bg-gray-900 border border-gray-700 rounded-xl p-1 cursor-pointer">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-xs font-bold text-gray-400">Aura Glow Color</label>
+                            <input type="color" id="forge-color-aura" value="#6366f1" onchange="updateForgePreview()" class="w-full h-10 bg-gray-900 border border-gray-700 rounded-xl p-1 cursor-pointer">
+                        </div>
+                    </div>
+
+                    <div class="space-y-1">
+                        <label class="text-xs font-bold text-gray-400">Special Ability Text</label>
+                        <input type="text" id="forge-ability" value="Strike with absolute cosmic velocity." maxlength="45" oninput="updateForgePreview()" class="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+                    </div>
+
+                    <button onclick="craftCustomCard()" class="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 font-extrabold text-white text-sm shadow-lg shadow-indigo-500/25 transition flex items-center justify-center gap-2">
+                        🔨 Craft & Add to Album
+                    </button>
+                </div>
+
+                <!-- Right: Realtime Preview -->
+                <div class="lg:col-span-5 flex flex-col items-center gap-3">
+                    <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">Card Preview</span>
+                    <div id="forge-card-container" class="w-64 h-96 relative rounded-2xl border-2 p-3 flex flex-col justify-between shadow-2xl bg-gray-900 transition-all duration-300">
+                        <!-- Rendered dynamically -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 4: COLLECTION ALBUM -->
+        <section id="view-album" class="tab-view hidden space-y-6">
+            <!-- Album Header Metrics -->
+            <div class="glass-panel p-6 rounded-2xl border border-gray-800 flex flex-col md:flex-row items-center justify-between gap-6">
+                <div>
+                    <h2 class="text-2xl font-extrabold text-white flex items-center gap-2">
+                        📖 Stickman Card Album
+                    </h2>
+                    <p class="text-xs text-gray-400">Manage, inspect, and sell your duplicate stickman warrior cards.</p>
+                </div>
+
+                <div class="flex items-center gap-4 sm:gap-6 bg-gray-900/80 px-4 py-2.5 rounded-xl border border-gray-800">
+                    <div class="text-center">
+                        <p class="text-[10px] text-gray-400 uppercase tracking-wider font-bold">Total Cards</p>
+                        <p id="album-total-count" class="text-lg font-extrabold text-indigo-400">0</p>
+                    </div>
+                    <div class="h-8 w-px bg-gray-800"></div>
+                    <div class="text-center">
+                        <p class="text-[10px] text-gray-400 uppercase tracking-wider font-bold">Unique Unlocked</p>
+                        <p id="album-unique-count" class="text-lg font-extrabold text-emerald-400">0 / 0</p>
+                    </div>
+                    <div class="h-8 w-px bg-gray-800"></div>
+                    <div class="text-center">
+                        <p class="text-[10px] text-gray-400 uppercase tracking-wider font-bold">Album Value</p>
+                        <p id="album-total-value" class="text-lg font-extrabold text-yellow-400">0g</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters Bar -->
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <!-- Search Bar -->
+                <div class="relative w-full sm:w-64">
+                    <input type="text" id="album-search" oninput="renderAlbum()" placeholder="Search cards..." class="w-full bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 pl-9 text-xs text-white focus:outline-none focus:border-indigo-500">
+                    <span class="absolute left-3 top-2.5 text-gray-500 text-xs">🔍</span>
+                </div>
+
+                <!-- Rarity Filter Tabs -->
+                <div class="flex items-center gap-1 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
+                    <button onclick="setAlbumFilter('All')" class="album-filter active text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-600 text-white">All</button>
+                    <button onclick="setAlbumFilter('Common')" class="album-filter text-xs font-bold px-3 py-1.5 rounded-lg bg-gray-800 text-gray-400 hover:text-white">Common</button>
+                    <button onclick="setAlbumFilter('Uncommon')" class="album-filter text-xs font-bold px-3 py-1.5 rounded-lg bg-gray-800 text-gray-400 hover:text-white">Uncommon</button>
+                    <button onclick="setAlbumFilter('Rare')" class="album-filter text-xs font-bold px-3 py-1.5 rounded-lg bg-gray-800 text-gray-400 hover:text-white">Rare</button>
+                    <button onclick="setAlbumFilter('Epic')" class="album-filter text-xs font-bold px-3 py-1.5 rounded-lg bg-gray-800 text-gray-400 hover:text-white">Epic</button>
+                    <button onclick="setAlbumFilter('Legendary')" class="album-filter text-xs font-bold px-3 py-1.5 rounded-lg bg-gray-800 text-gray-400 hover:text-white">Legendary</button>
+                    <button onclick="setAlbumFilter('Mythic')" class="album-filter text-xs font-bold px-3 py-1.5 rounded-lg bg-gray-800 text-gray-400 hover:text-white">Mythic</button>
+                </div>
+            </div>
+
+            <!-- CARD COLLECTION GRID -->
+            <div id="album-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                <!-- Album items rendered dynamically -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="glass-panel border-t border-gray-800 py-4 px-4 text-center text-xs text-gray-500">
+        Stickman Card Pack Opening Simulator • Saved automatically to device
+    </footer>
+
+    <!-- MODAL 1: UNBOXING (ANIMATED PACK OPENING) -->
+    <div id="unboxing-modal" class="fixed inset-0 z-50 unboxing-overlay hidden flex flex-col items-center justify-center p-4 overflow-hidden" style="--fx-color:#6366F1">
+        <!-- Spinning light rays and glow (wrapper centres, inner element spins) -->
+        <div class="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
+            <div class="absolute w-[160vmax] h-[160vmax] rays-spin">
+                <div id="unboxing-rays" class="w-full h-full rays transition-opacity duration-700" style="opacity:0"></div>
+            </div>
+            <div id="unboxing-aura-glow" class="absolute w-[70vmin] h-[70vmin] rounded-full blur-3xl opacity-40 pointer-events-none" style="background: var(--fx-color); transition: background-color .7s ease"></div>
+        </div>
+        <canvas id="fx-canvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+        <div id="unboxing-flash" class="absolute inset-0 pointer-events-none opacity-0"></div>
+
+        <div id="unboxing-stage" class="relative z-10 flex flex-col items-center w-full max-w-5xl">
+            <div class="text-center space-y-1 mb-6">
+                <h2 id="unboxing-pack-title" class="text-xl sm:text-2xl font-black text-white tracking-wider uppercase">Opening Pack...</h2>
+                <p id="unboxing-subtitle" class="text-xs text-indigo-300 font-semibold">Something stirs inside...</p>
+            </div>
+
+            <div class="h-[22rem] sm:h-[26rem] flex items-center justify-center">
+                <div id="pack-stage" class="hidden"></div>
+                <div id="unboxing-cards-container" class="flex items-center justify-center gap-4 sm:gap-6 flex-wrap"></div>
+            </div>
+
+            <div id="unboxing-actions" class="hidden mt-6 flex items-center gap-4">
+                <button id="reveal-all-btn" onclick="revealAllPackCards()" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-extrabold text-xs sm:text-sm text-white shadow-lg shadow-indigo-500/30 transition">
+                    ⚡ Reveal All Cards
+                </button>
+                <button id="close-unboxing-btn" onclick="closeUnboxingModal()" class="px-5 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 font-bold text-xs sm:text-sm text-gray-300 border border-gray-700 transition">
+                    Collect & Exit
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: INSPECT CARD MODAL -->
+    <div id="inspect-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass-panel max-w-md w-full p-6 rounded-2xl border border-gray-800 space-y-6 relative text-center">
+            <button onclick="toggleModal('inspect-modal', false)" class="absolute right-4 top-4 text-gray-400 hover:text-white text-lg">✕</button>
+            
+            <h3 class="text-lg font-bold text-white">Card Details</h3>
+            
+            <div id="inspect-card-target" class="w-64 h-96 mx-auto"></div>
+
+            <div class="space-y-3 text-left bg-gray-900/60 p-4 rounded-xl border border-gray-800 text-xs space-y-2">
+                <div class="flex justify-between"><span class="text-gray-400">Card ID:</span><span id="inspect-id" class="font-mono text-white">#000</span></div>
+                <div class="flex justify-between"><span class="text-gray-400">Power Rating:</span><span id="inspect-power" class="font-bold text-yellow-400">950</span></div>
+                <div class="flex justify-between"><span class="text-gray-400">Disenchant Value:</span><span id="inspect-sell" class="font-bold text-yellow-400">25g</span></div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <button id="sell-card-btn" onclick="sellCurrentInspectedCard()" class="flex-1 py-2.5 rounded-xl bg-red-600/20 hover:bg-red-600/30 border border-red-500/40 text-red-300 font-bold text-xs transition">
+                    🔥 Disenchant for Coins
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 3: BACKUP / RESTORE -->
+    <div id="backup-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass-panel max-w-md w-full p-6 rounded-2xl border border-gray-800 space-y-4 relative">
+            <button onclick="toggleModal('backup-modal', false)" class="absolute right-4 top-4 text-gray-400 hover:text-white text-lg">✕</button>
+            <h3 class="text-lg font-extrabold text-white flex items-center gap-2">💾 Save Data & Backup</h3>
+            <p class="text-xs text-gray-400">Save your cards and coins to a .json file, or load one from your computer.</p>
+
+            <div class="space-y-2">
+                <button onclick="exportSaveData()" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold text-xs text-white transition">
+                    📥 Export Save File (.json)
+                </button>
+            </div>
+
+            <div class="space-y-2">
+                <label for="import-file" class="block w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-bold text-xs text-white text-center cursor-pointer transition">
+                    📤 Import Save File (.json)…
+                </label>
+                <input id="import-file" type="file" accept=".json,application/json" class="hidden" onchange="importSaveFile(event)">
+                <p id="import-status" class="text-[11px] text-gray-400 min-h-[1rem]"></p>
+            </div>
+
+            <hr class="border-gray-800">
+
+            <button onclick="resetAllGameProgress()" class="w-full py-2 rounded-xl bg-red-900/30 hover:bg-red-900/50 border border-red-700/50 text-red-400 font-bold text-xs transition">
+                ⚠️ Reset All Save Data
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL 4: TUTORIAL -->
+    <div id="tutorial-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass-panel max-w-lg w-full p-6 rounded-2xl border border-gray-800 space-y-4 relative">
+            <button onclick="toggleModal('tutorial-modal', false)" class="absolute right-4 top-4 text-gray-400 hover:text-white text-lg">✕</button>
+            
+            <h3 class="text-xl font-extrabold text-white flex items-center gap-2">❓ How to Play</h3>
+            
+            <div class="space-y-3 text-xs text-gray-300">
+                <div class="p-3 bg-gray-900/80 rounded-xl border border-gray-800 space-y-1">
+                    <p class="font-bold text-yellow-400">1. Train Stickmen (Earn Coins)</p>
+                    <p class="text-gray-400">Play training minigames in the Dojo to earn up to 10,000 coins every day!</p>
+                </div>
+
+                <div class="p-3 bg-gray-900/80 rounded-xl border border-gray-800 space-y-1">
+                    <p class="font-bold text-indigo-400">2. Open Theme Packs</p>
+                    <p class="text-gray-400">Purchase Novice, Halloween Spooky, Winter Frost, Cyber, and Celestial packs to unbox rare stickman heroes.</p>
+                </div>
+
+                <div class="p-3 bg-gray-900/80 rounded-xl border border-gray-800 space-y-1">
+                    <p class="font-bold text-violet-400">3. Custom Stickman Forge</p>
+                    <p class="text-gray-400">Design your own stickman fighter with custom headgear, weapons, poses, and aura colors!</p>
+                </div>
+
+                <div class="p-3 bg-gray-900/80 rounded-xl border border-gray-800 space-y-1">
+                    <p class="font-bold text-emerald-400">4. Disenchant Duplicates</p>
+                    <p class="text-gray-400">Sell extra duplicate cards from your Album to gain gold coins back.</p>
+                </div>
+            </div>
+
+            <button onclick="toggleModal('tutorial-modal', false)" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold text-xs text-white transition">
+                Got It, Let's Play!
+            </button>
+        </div>
+    </div>
+
+
+    <!-- GAME LOGIC SCRIPT -->
+    <script>
+        /* ==========================================================================
+           GAME DATA CONSTANTS & RARITIES
+           ========================================================================== */
+        const RARITY_CONFIG = {
+            Common:    { color: '#9CA3AF', border: '#4B5563', bg: 'from-gray-800 to-gray-900', sell: 10, value: 10 },
+            Uncommon:  { color: '#34D399', border: '#059669', bg: 'from-emerald-950 to-gray-900', sell: 25, value: 25 },
+            Rare:      { color: '#60A5FA', border: '#2563EB', bg: 'from-blue-950 to-gray-900', sell: 75, value: 75 },
+            Epic:      { color: '#A78BFA', border: '#7C3AED', bg: 'from-purple-950 to-gray-900', sell: 250, value: 250 },
+            Legendary: { color: '#FBBF24', border: '#D97706', bg: 'from-amber-950 to-gray-900', sell: 750, value: 750 },
+            Mythic:    { color: '#F43F5E', border: '#E11D48', bg: 'from-rose-950 to-gray-900', sell: 2500, value: 2500 }
+        };
+
+        const PACKS_DATA = [
+            { id: 'novice', title: 'Novice Standard Pack', cost: 100, icon: '⚔️', accent: '#6366F1', desc: 'Standard stickman warrior recruits.', themeColor: 'from-indigo-600 to-blue-700', cardsPerPack: 3,
+              rates: { Common: 60, Uncommon: 25, Rare: 10, Epic: 4, Legendary: 1, Mythic: 0 } },
+            { id: 'jungle', title: 'Jungle Ruins Pack', cost: 175, icon: '🗿', accent: '#84CC16', desc: 'Temple guardians and vine-wrapped hunters.', themeColor: 'from-lime-600 to-emerald-900', cardsPerPack: 3,
+              rates: { Common: 45, Uncommon: 30, Rare: 15, Epic: 7, Legendary: 2.5, Mythic: 0.5 } },
+            { id: 'halloween', title: 'Halloween Spooky Pack', cost: 250, icon: '🎃', accent: '#F97316', desc: 'Pumpkins, Vampires, Skeletons & Grim Reapers!', themeColor: 'from-orange-600 to-purple-800', cardsPerPack: 3,
+              rates: { Common: 30, Uncommon: 35, Rare: 20, Epic: 10, Legendary: 4, Mythic: 1 } },
+            { id: 'desert', title: 'Sandstorm Sultans Pack', cost: 300, icon: '🐪', accent: '#F59E0B', desc: 'Dune assassins, sand sultans and scarab riders.', themeColor: 'from-amber-500 to-orange-900', cardsPerPack: 3,
+              rates: { Common: 25, Uncommon: 35, Rare: 25, Epic: 10, Legendary: 4, Mythic: 1 } },
+            { id: 'winter', title: 'Winter Frost Pack', cost: 350, icon: '❄️', accent: '#38BDF8', desc: 'Snowmen, Ice Wizards & Frost Yetis.', themeColor: 'from-cyan-600 to-blue-900', cardsPerPack: 3,
+              rates: { Common: 20, Uncommon: 30, Rare: 30, Epic: 14, Legendary: 5, Mythic: 1 } },
+            { id: 'retro', title: 'Neon Arcade Pack', cost: 400, icon: '👾', accent: '#D946EF', desc: 'Pixel punks and synth wizards from the high-score era.', themeColor: 'from-fuchsia-600 to-violet-900', cardsPerPack: 4,
+              rates: { Common: 15, Uncommon: 25, Rare: 30, Epic: 20, Legendary: 8, Mythic: 2 } },
+            { id: 'cyber', title: 'Cyber Sci-Fi Pack', cost: 500, icon: '🤖', accent: '#10B981', desc: 'Cyber Ninjas, Laser Troopers & Mech Warriors.', themeColor: 'from-emerald-500 to-teal-900', cardsPerPack: 4,
+              rates: { Common: 10, Uncommon: 25, Rare: 35, Epic: 20, Legendary: 8, Mythic: 2 } },
+            { id: 'royal', title: 'Royal Vault Pack', cost: 750, icon: '👑', accent: '#EAB308', desc: 'Golden emperors and loyal vault knights.', themeColor: 'from-yellow-500 to-red-900', cardsPerPack: 4, featured: true,
+              rates: { Common: 0, Uncommon: 15, Rare: 30, Epic: 30, Legendary: 17, Mythic: 8 } },
+            { id: 'celestial', title: 'Celestial Chaos Pack', cost: 1000, icon: '🌌', accent: '#C084FC', desc: 'High mythic gods and cosmic stickmen warriors.', themeColor: 'from-purple-600 to-pink-800', cardsPerPack: 4,
+              rates: { Common: 0, Uncommon: 10, Rare: 30, Epic: 35, Legendary: 20, Mythic: 5 } },
+            { id: 'void', title: 'Void Eclipse Pack', cost: 2500, icon: '🕳️', accent: '#A855F7', desc: 'Only the void holds power this terrifying.', themeColor: 'from-slate-900 to-fuchsia-900', cardsPerPack: 5,
+              rates: { Common: 0, Uncommon: 0, Rare: 20, Epic: 35, Legendary: 30, Mythic: 15 } },
+            { id: 'sky', title: 'Sky Temple Pack', cost: 600, icon: '🏯', accent: '#0EA5E9', desc: 'Cloud monks and temple knights from the high peaks.', themeColor: 'from-sky-500 to-indigo-900', cardsPerPack: 4,
+              rates: { Common: 10, Uncommon: 25, Rare: 30, Epic: 22, Legendary: 9, Mythic: 4 } },
+            { id: 'pirate', title: 'Pirate Cove Pack', cost: 200, icon: '🏴‍☠️', accent: '#B45309', desc: 'Cutlass captains and rum runners from the cove.', themeColor: 'from-stone-700 to-amber-900', cardsPerPack: 3,
+              rates: { Common: 40, Uncommon: 30, Rare: 18, Epic: 8, Legendary: 3, Mythic: 1 } },
+            { id: 'galaxy', title: 'Galaxy Rift Pack', cost: 1500, icon: '🪐', accent: '#8B5CF6', desc: 'Nova drifters and comet monarchs from beyond the stars.', themeColor: 'from-violet-700 to-indigo-950', cardsPerPack: 5,
+              rates: { Common: 0, Uncommon: 0, Rare: 15, Epic: 35, Legendary: 35, Mythic: 15 } }
+        ];
+
+        // Procedural Stickman Generators Data (pack-specific pools)
+        const CARD_PRESETS = [
+            { name: "Iron Recruit", pack: "novice", pose: "Attacking", head: "None", weapon: "Katana", stickColor: "#e5e7eb", auraColor: "#6b7280", ability: "Trains until dawn, every day." },
+            { name: "Shadow Slayer", pack: "novice", pose: "Heroic", head: "Ninja Headband", weapon: "Katana", stickColor: "#ffffff", auraColor: "#6366f1", ability: "Strikes swift from darkness." },
+            { name: "Jungle Stalker", pack: "jungle", pose: "Ninja", head: "Ninja Headband", weapon: "Katana", stickColor: "#d9f99d", auraColor: "#65a30d", ability: "Vanishes into the canopy." },
+            { name: "Temple Guardian", pack: "jungle", pose: "Heroic", head: "Crown", weapon: "Staff", stickColor: "#fde68a", auraColor: "#a16207", ability: "Stone wards block every strike." },
+            { name: "Vine Shaman", pack: "jungle", pose: "Floating", head: "Wizard Hat", weapon: "Staff", stickColor: "#86efac", auraColor: "#16a34a", ability: "Summons roots from the earth." },
+            { name: "Pumpkin King", pack: "halloween", pose: "Attacking", head: "Pumpkin Head", weapon: "Scythe", stickColor: "#fb923c", auraColor: "#ea580c", ability: "Harvests souls under full moon." },
+            { name: "Vampire Lord", pack: "halloween", pose: "Floating", head: "Demon Horns", weapon: "Scythe", stickColor: "#fecaca", auraColor: "#7f1d1d", ability: "Drains life with every swing." },
+            { name: "Sand Sultan", pack: "desert", pose: "Heroic", head: "Crown", weapon: "Saber", stickColor: "#fcd34d", auraColor: "#d97706", ability: "Commands the storm's fury." },
+            { name: "Dune Assassin", pack: "desert", pose: "Ninja", head: "Ninja Headband", weapon: "Katana", stickColor: "#fed7aa", auraColor: "#9a3412", ability: "Strikes from the sandstorm." },
+            { name: "Scarab Rider", pack: "desert", pose: "Dual Wield", head: "Demon Horns", weapon: "Saber", stickColor: "#fdba74", auraColor: "#c2410c", ability: "Swarms foes with ancient scarabs." },
+            { name: "Frost Wizard", pack: "winter", pose: "Floating", head: "Wizard Hat", weapon: "Staff", stickColor: "#38bdf8", auraColor: "#0284c7", ability: "Freezes enemies in an icy prison." },
+            { name: "Snowman Brawler", pack: "winter", pose: "Heroic", head: "None", weapon: "Staff", stickColor: "#e0f2fe", auraColor: "#7dd3fc", ability: "Pelts foes with snowballs." },
+            { name: "Pixel Punk", pack: "retro", pose: "Dual Wield", head: "Cyber Visor", weapon: "Saber", stickColor: "#f0abfc", auraColor: "#c026d3", ability: "Respawns after every knockout." },
+            { name: "Arcade Ace", pack: "retro", pose: "Attacking", head: "Cyber Visor", weapon: "Katana", stickColor: "#67e8f9", auraColor: "#0891b2", ability: "High-score combos grant bonus power." },
+            { name: "Cyber Blade 2077", pack: "cyber", pose: "Dual Wield", head: "Cyber Visor", weapon: "Saber", stickColor: "#34d399", auraColor: "#10b981", ability: "Overclocks combat processors." },
+            { name: "Laser Trooper", pack: "cyber", pose: "Attacking", head: "Cyber Visor", weapon: "Saber", stickColor: "#a7f3d0", auraColor: "#047857", ability: "Locks onto targets instantly." },
+            { name: "Golden Emperor", pack: "royal", pose: "Heroic", head: "Crown", weapon: "Saber", stickColor: "#fef08a", auraColor: "#eab308", ability: "Coins multiply in his presence." },
+            { name: "Vault Knight", pack: "royal", pose: "Dual Wield", head: "Crown", weapon: "Scythe", stickColor: "#fbbf24", auraColor: "#b45309", ability: "Guards the treasury forever." },
+            { name: "Cosmic Overlord", pack: "celestial", pose: "Floating", head: "Crown", weapon: "Staff", stickColor: "#f43f5e", auraColor: "#e11d48", ability: "Distorts time and gravity." },
+            { name: "Star Titan", pack: "celestial", pose: "Heroic", head: "Crown", weapon: "Staff", stickColor: "#fbcfe8", auraColor: "#be185d", ability: "Bends the stars to his will." },
+            { name: "Eclipse Walker", pack: "void", pose: "Floating", head: "Demon Horns", weapon: "Scythe", stickColor: "#c4b5fd", auraColor: "#7c3aed", ability: "Walks between dimensions." },
+            { name: "Void Monarch", pack: "void", pose: "Dual Wield", head: "Demon Horns", weapon: "Staff", stickColor: "#a78bfa", auraColor: "#4c1d95", ability: "Devours light itself." },
+            { name: "Nebula Reaper", pack: "void", pose: "Attacking", head: "Demon Horns", weapon: "Scythe", stickColor: "#f5d0fe", auraColor: "#86198f", ability: "Harvests stars from the sky." },
+            { name: "Cloud Monk", pack: "sky", pose: "Floating", head: "Wizard Hat", weapon: "Staff", stickColor: "#e0f2fe", auraColor: "#0284c7", ability: "Walks on the clouds." },
+            { name: "Sky Knight", pack: "sky", pose: "Heroic", head: "Crown", weapon: "Saber", stickColor: "#bae6fd", auraColor: "#0369a1", ability: "Guards the temple peaks." },
+            { name: "Cutlass Captain", pack: "pirate", pose: "Attacking", head: "None", weapon: "Saber", stickColor: "#d6d3d1", auraColor: "#78350f", ability: "Never sails without a plan." },
+            { name: "Rum Runner", pack: "pirate", pose: "Dual Wield", head: "Ninja Headband", weapon: "Katana", stickColor: "#fde68a", auraColor: "#92400e", ability: "Outruns every navy ship." },
+            { name: "Nova Drifter", pack: "galaxy", pose: "Floating", head: "Cyber Visor", weapon: "Staff", stickColor: "#c4b5fd", auraColor: "#6d28d9", ability: "Surfs the solar winds." },
+            { name: "Comet Monarch", pack: "galaxy", pose: "Heroic", head: "Crown", weapon: "Scythe", stickColor: "#ddd6fe", auraColor: "#5b21b6", ability: "Rides a tail of fire." }
+        ];
+
+        // SECRET: Verity can turn up in any pack. Change SECRET_CHANCE to tune how often (0.03 = 3% per card).
+        const SECRET_CHANCE = 0.03;
+        const SECRET_PRESET = { name: "Verity", pack: "secret", pose: "Attacking", head: "Smiley Egg", weapon: "Katana", stickColor: "#facc15", auraColor: "#713f12", ability: "Always right. Never checks." };
+        const SECRET_POOL = [
+            SECRET_PRESET,
+            { name: "Swampy Ogre", pack: "secret", pose: "Heroic", head: "Ogre Ears", weapon: "Staff", stickColor: "#84cc16", auraColor: "#3f6212", ability: "Guards the murky swamp with a grumpy roar." },
+            { name: "Bobrito Pomelli", pack: "secret", pose: "Heroic", head: "Beaver Fedora", weapon: "Staff", stickColor: "#92400e", auraColor: "#78350f", ability: "Dam-builder with a fedora and a stubborn streak." },
+            { name: "Sad Cat", pack: "secret", pose: "Floating", head: "Cat Sad", weapon: "Staff", stickColor: "#9ca3af", auraColor: "#374151", ability: "Nobody understands him. Yet." },
+            { name: "Tung Tung Sahur", pack: "secret", pose: "Attacking", head: "Log Head", weapon: "Saber", stickColor: "#78350f", auraColor: "#451a03", ability: "Smacks everything with a wooden bat." },
+            { name: "Glitch Ghost", pack: "secret", pose: "Floating", head: "None", weapon: "Saber", stickColor: "#e5e7eb", auraColor: "#22d3ee", ability: "404: ability not found." },
+            { name: "Mega Stickman", pack: "secret", pose: "Heroic", head: "Crown", weapon: "Scythe", stickColor: "#ef4444", auraColor: "#7f1d1d", ability: "Stands taller than everyone else." },
+            { name: "Sigma Stickman", pack: "secret", pose: "Heroic", head: "None", weapon: "Katana", stickColor: "#f8fafc", auraColor: "#1e293b", ability: "Grindset activated. No notifications." },
+            { name: "Doomscroll Dan", pack: "secret", pose: "Floating", head: "Cyber Visor", weapon: "Saber", stickColor: "#60a5fa", auraColor: "#1d4ed8", ability: "Has been scrolling since 2019." },
+            { name: "NPC Stick", pack: "secret", pose: "Heroic", head: "None", weapon: "Staff", stickColor: "#a3a3a3", auraColor: "#525252", ability: "Says the same line forever." },
+            { name: "Cringe Wizard", pack: "secret", pose: "Floating", head: "Wizard Hat", weapon: "Staff", stickColor: "#c084fc", auraColor: "#6b21a8", ability: "Casts spells nobody asked for." }
+        ];
+
+        /* ==========================================================================
+           STATE MANAGEMENT & LOCAL STORAGE
+           ========================================================================== */
+        let gameState = {
+            coins: 500,
+            dailyTrainingCoins: 0,
+            lastTrainingDate: new Date().toISOString().slice(0, 10),
+            inventory: [],
+            isPhoneMode: false
+        };
+
+        let currentActivePackCards = [];
+        let currentInspectedCardId = null;
+        let activeMinigame = 'timing';
+
+        function loadGameState() {
+            const saved = localStorage.getItem('STICKMAN_SIMULATOR_SAVE_V2');
+            if (saved) {
+                try {
+                    gameState = JSON.parse(saved);
+                } catch(e) {
+                    console.error("Failed to parse save game", e);
+                }
+            }
+
+            // Check if training reset is required for new day
+            const today = new Date().toISOString().slice(0, 10);
+            if (gameState.lastTrainingDate !== today) {
+                gameState.dailyTrainingCoins = 0;
+                gameState.lastTrainingDate = today;
+            }
+
+            // Check phone viewport detection
+            if (window.innerWidth <= 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+                gameState.isPhoneMode = true;
+            }
+
+            saveGameState();
+            updateUI();
+        }
+
+        function saveGameState() {
+            localStorage.setItem('STICKMAN_SIMULATOR_SAVE_V2', JSON.stringify(gameState));
+            updateUI();
+        }
+
+        /* ==========================================================================
+           WEB AUDIO SYNTHESIZER SOUND EFFECTS
+           ========================================================================== */
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(type) {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            
+            if (type === 'click') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.exponentialRampToValueAtTime(100, now + 0.05);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.05);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.05);
+            } else if (type === 'flip') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(200, now);
+                osc.frequency.exponentialRampToValueAtTime(600, now + 0.15);
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            } else if (type === 'mythic') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.exponentialRampToValueAtTime(900, now + 0.5);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.5);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.5);
+            } else if (type === 'coin') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800, now);
+                osc.frequency.setValueAtTime(1200, now + 0.08);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.2);
+            }
+        }
+
+        /* ==========================================================================
+           PROCEDURAL HTML5 CANVAS STICKMAN DRAWING ENGINE
+           ========================================================================== */
+        function drawStickmanCanvas(canvas, cardData) {
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+
+            ctx.clearRect(0, 0, w, h);
+
+            // 1. Draw Background Aura / Gradient
+            const rarity = RARITY_CONFIG[cardData.rarity] || RARITY_CONFIG.Common;
+            const grad = ctx.createRadialGradient(w/2, h/2, 10, w/2, h/2, w*0.8);
+            grad.addColorStop(0, cardData.auraColor || '#6366f1');
+            grad.addColorStop(1, '#0B0F19');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, w, h);
+
+            // Floating background aura particles
+            ctx.fillStyle = cardData.auraColor || '#ffffff';
+            for(let i=0; i<8; i++) {
+                const px = (Math.sin(i * 99 + Date.now()*0.001) * 0.4 + 0.5) * w;
+                const py = (Math.cos(i * 33 + Date.now()*0.001) * 0.4 + 0.5) * h;
+                ctx.beginPath();
+                ctx.arc(px, py, Math.random() * 2 + 1, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // 2. Stickman Joint Coordinates based on Pose
+            const centerX = w / 2;
+            const centerY = h / 2 + 10;
+            const color = cardData.stickColor || '#ffffff';
+
+            ctx.strokeStyle = color;
+            ctx.fillStyle = color;
+            ctx.lineWidth = 4;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            let headX = centerX, headY = centerY - 40;
+            let hipX = centerX, hipY = centerY + 20;
+
+            let armL = { x: centerX - 25, y: centerY - 10 };
+            let armR = { x: centerX + 25, y: centerY - 10 };
+            let legL = { x: centerX - 20, y: centerY + 65 };
+            let legR = { x: centerX + 20, y: centerY + 65 };
+
+            if (cardData.pose === 'Attacking') {
+                armR = { x: centerX + 40, y: centerY - 35 };
+                legL = { x: centerX - 30, y: centerY + 60 };
+                legR = { x: centerX + 30, y: centerY + 70 };
+            } else if (cardData.pose === 'Floating') {
+                headY -= 10;
+                hipY -= 10;
+                armL = { x: centerX - 35, y: centerY - 30 };
+                armR = { x: centerX + 35, y: centerY - 30 };
+                legL = { x: centerX - 10, y: centerY + 55 };
+                legR = { x: centerX + 10, y: centerY + 55 };
+            }
+
+            // Draw Spine
+            ctx.beginPath();
+            ctx.moveTo(headX, headY + 12);
+            ctx.lineTo(hipX, hipY);
+            ctx.stroke();
+
+            // Draw Legs
+            ctx.beginPath();
+            ctx.moveTo(hipX, hipY); ctx.lineTo(legL.x, legL.y);
+            ctx.moveTo(hipX, hipY); ctx.lineTo(legR.x, legR.y);
+            ctx.stroke();
+
+            // Draw Arms
+            const shoulderY = centerY - 25;
+            ctx.beginPath();
+            ctx.moveTo(centerX, shoulderY); ctx.lineTo(armL.x, armL.y);
+            ctx.moveTo(centerX, shoulderY); ctx.lineTo(armR.x, armR.y);
+            ctx.stroke();
+
+            // Draw Head
+            if (cardData.head === 'Smiley Egg') {
+                // Yellow egg head with a big grin, black eyes and a brown spot
+                ctx.fillStyle = '#facc15';
+                ctx.beginPath();
+                ctx.ellipse(headX, headY, 17, 21, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#000000';
+                ctx.beginPath();
+                ctx.arc(headX - 6, headY - 6, 2.8, 0, Math.PI * 2);
+                ctx.arc(headX + 6, headY - 6, 2.8, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(headX, headY + 7, 9, 6.5, 0, 0, Math.PI);
+                ctx.fill();
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.ellipse(headX, headY + 8.5, 6, 2.5, 0, 0, Math.PI);
+                ctx.fill();
+                ctx.fillStyle = '#7c2d12';
+                ctx.beginPath();
+                ctx.arc(headX - 9, headY + 14, 1.6, 0, Math.PI * 2);
+                ctx.fill();
+            } else {
+                ctx.beginPath();
+                ctx.arc(headX, headY, 14, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // 3. Draw Headgear
+            ctx.fillStyle = '#f59e0b';
+            if (cardData.head === 'Crown') {
+                ctx.beginPath();
+                ctx.moveTo(headX - 12, headY - 10);
+                ctx.lineTo(headX - 12, headY - 22);
+                ctx.lineTo(headX - 6, headY - 14);
+                ctx.lineTo(headX, headY - 24);
+                ctx.lineTo(headX + 6, headY - 14);
+                ctx.lineTo(headX + 12, headY - 22);
+                ctx.lineTo(headX + 12, headY - 10);
+                ctx.closePath();
+                ctx.fill();
+            } else if (cardData.head === 'Pumpkin Head') {
+                ctx.fillStyle = '#ea580c';
+                ctx.beginPath();
+                ctx.arc(headX, headY, 18, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(headX - 8, headY - 4, 4, 4);
+                ctx.fillRect(headX + 4, headY - 4, 4, 4);
+            } else if (cardData.head === 'Wizard Hat') {
+                ctx.fillStyle = '#3b82f6';
+                ctx.beginPath();
+                ctx.moveTo(headX - 20, headY - 8);
+                ctx.lineTo(headX + 20, headY - 8);
+                ctx.lineTo(headX, headY - 32);
+                ctx.closePath();
+                ctx.fill();
+            } else if (cardData.head === 'Cyber Visor') {
+                ctx.fillStyle = '#10b981';
+                ctx.fillRect(headX - 12, headY - 4, 24, 6);
+            } else if (cardData.head === 'Ogre Ears') {
+                // Big floppy ears, a wide grin with teeth, a broad nose and a few warts
+                ctx.fillStyle = cardData.stickColor || '#84cc16';
+                ctx.beginPath();
+                ctx.ellipse(headX - 17, headY - 2, 8, 6, -0.4, 0, Math.PI * 2);
+                ctx.ellipse(headX + 17, headY - 2, 8, 6, 0.4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#3f6212';
+                ctx.beginPath();
+                ctx.ellipse(headX - 17, headY - 2, 3.5, 2.5, -0.4, 0, Math.PI * 2);
+                ctx.ellipse(headX + 17, headY - 2, 3.5, 2.5, 0.4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.ellipse(headX - 5, headY - 5, 4, 3, 0, 0, Math.PI * 2);
+                ctx.ellipse(headX + 5, headY - 5, 4, 3, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#000000';
+                ctx.beginPath();
+                ctx.arc(headX - 4.5, headY - 5, 1.8, 0, Math.PI * 2);
+                ctx.arc(headX + 5.5, headY - 5, 1.8, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#3f6212';
+                ctx.beginPath();
+                ctx.ellipse(headX, headY + 0, 3.5, 4, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#000000';
+                ctx.beginPath();
+                ctx.ellipse(headX, headY + 7, 8, 4.5, 0, 0, Math.PI);
+                ctx.fill();
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(headX - 6, headY + 7, 12, 2.5);
+                ctx.fillStyle = '#3f6212';
+                ctx.beginPath();
+                ctx.arc(headX - 9, headY - 11, 1.2, 0, Math.PI * 2);
+                ctx.arc(headX + 10, headY + 3, 1.2, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (cardData.head === 'Beaver Fedora') {
+                // Brown beaver head with buck teeth, a dark nose and a fedora
+                ctx.fillStyle = cardData.stickColor || '#92400e';
+                ctx.beginPath();
+                ctx.arc(headX, headY, 14, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(headX - 4, headY - 3, 2.2, 0, Math.PI * 2);
+                ctx.arc(headX + 4, headY - 3, 2.2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#000000';
+                ctx.beginPath();
+                ctx.arc(headX - 4, headY - 3, 1.1, 0, Math.PI * 2);
+                ctx.arc(headX + 4, headY - 3, 1.1, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#1f2937';
+                ctx.beginPath();
+                ctx.ellipse(headX, headY + 2, 3, 2.2, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#fef3c7';
+                ctx.fillRect(headX - 3, headY + 6, 3, 6);
+                ctx.fillRect(headX, headY + 6, 3, 6);
+                ctx.fillStyle = '#44403c';
+                ctx.beginPath();
+                ctx.ellipse(headX, headY - 12, 15, 4, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#57534e';
+                ctx.beginPath();
+                ctx.moveTo(headX - 9, headY - 12); ctx.lineTo(headX - 8, headY - 22);
+                ctx.lineTo(headX + 8, headY - 22); ctx.lineTo(headX + 9, headY - 12);
+                ctx.closePath();
+                ctx.fill();
+                ctx.fillStyle = '#a16207';
+                ctx.fillRect(headX - 8, headY - 15, 16, 2);
+            } else if (cardData.head === 'Cat Sad') {
+                // Pointy cat ears, whiskers, a frown and a tear
+                ctx.fillStyle = cardData.stickColor || '#9ca3af';
+                ctx.beginPath();
+                ctx.arc(headX, headY, 14, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.moveTo(headX - 12, headY - 6); ctx.lineTo(headX - 14, headY - 20); ctx.lineTo(headX - 3, headY - 11);
+                ctx.moveTo(headX + 12, headY - 6); ctx.lineTo(headX + 14, headY - 20); ctx.lineTo(headX + 3, headY - 11);
+                ctx.fill();
+                ctx.strokeStyle = '#1f2937';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(headX - 4, headY + 4); ctx.lineTo(headX - 16, headY + 2);
+                ctx.moveTo(headX + 4, headY + 4); ctx.lineTo(headX + 16, headY + 2);
+                ctx.stroke();
+                ctx.fillStyle = '#000000';
+                ctx.beginPath();
+                ctx.arc(headX - 5, headY - 2, 1.6, 0, Math.PI * 2);
+                ctx.arc(headX + 5, headY - 2, 1.6, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#000000';
+                ctx.beginPath();
+                ctx.arc(headX, headY + 12, 4, Math.PI * 1.2, Math.PI * 1.8);
+                ctx.stroke();
+                ctx.fillStyle = '#60a5fa';
+                ctx.beginPath();
+                ctx.ellipse(headX - 6, headY + 4, 1.2, 2.2, 0, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (cardData.head === 'Log Head') {
+                // A wooden log head with bark rings, big eyes and a toothy grin
+                ctx.fillStyle = cardData.stickColor || '#78350f';
+                ctx.beginPath();
+                ctx.ellipse(headX, headY, 14, 15, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#451a03';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.ellipse(headX, headY, 9, 10, 0, 0, Math.PI * 2);
+                ctx.moveTo(headX - 13, headY - 4); ctx.lineTo(headX - 6, headY - 2);
+                ctx.moveTo(headX + 13, headY + 6); ctx.lineTo(headX + 7, headY + 5);
+                ctx.stroke();
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(headX - 5, headY - 4, 3, 0, Math.PI * 2);
+                ctx.arc(headX + 5, headY - 4, 3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#000000';
+                ctx.beginPath();
+                ctx.arc(headX - 5, headY - 4, 1.4, 0, Math.PI * 2);
+                ctx.arc(headX + 5, headY - 4, 1.4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#000000';
+                ctx.beginPath();
+                ctx.ellipse(headX, headY + 7, 6, 3.5, 0, 0, Math.PI);
+                ctx.fill();
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(headX - 4, headY + 7, 8, 2);
+            } else if (cardData.head === 'Troll Ears') {
+                // Big pointy ears, a warty nose and a grumpy mouth
+                ctx.fillStyle = cardData.stickColor || '#84cc16';
+                ctx.beginPath();
+                ctx.moveTo(headX - 12, headY - 4); ctx.lineTo(headX - 28, headY - 12); ctx.lineTo(headX - 12, headY + 6);
+                ctx.moveTo(headX + 12, headY - 4); ctx.lineTo(headX + 28, headY - 12); ctx.lineTo(headX + 12, headY + 6);
+                ctx.fill();
+                ctx.fillStyle = '#3f6212';
+                ctx.beginPath();
+                ctx.arc(headX, headY + 3, 3.5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#facc15';
+                ctx.fillRect(headX - 6, headY + 8, 3, 3);
+                ctx.fillRect(headX + 3, headY + 8, 3, 3);
+            }
+
+            // 4. Draw Weapons
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 3;
+            if (cardData.weapon === 'Katana') {
+                ctx.beginPath();
+                ctx.moveTo(armR.x, armR.y);
+                ctx.lineTo(armR.x + 35, armR.y - 35);
+                ctx.stroke();
+            } else if (cardData.weapon === 'Scythe') {
+                ctx.beginPath();
+                ctx.moveTo(armR.x, armR.y + 20);
+                ctx.lineTo(armR.x + 10, armR.y - 45);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(armR.x + 25, armR.y - 40, 15, Math.PI, Math.PI * 1.7);
+                ctx.stroke();
+            } else if (cardData.weapon === 'Staff') {
+                ctx.beginPath();
+                ctx.moveTo(armR.x, armR.y + 25);
+                ctx.lineTo(armR.x, armR.y - 40);
+                ctx.stroke();
+                ctx.fillStyle = cardData.auraColor || '#6366f1';
+                ctx.beginPath();
+                ctx.arc(armR.x, armR.y - 42, 6, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        /* ==========================================================================
+           UI NAVIGATION & TABS
+           ========================================================================== */
+        /* ==========================================================================
+           CODE REDEEMER
+           ========================================================================== */
+        const REDEEM_CODES = {
+            WELCOME500: { coins: 500 },
+            MEGAPACK: { coins: 1000 },
+            NIGHTSHIFT: { coins: 300 },
+            SADCAT: { card: 'Sad Cat' },
+            TUNGTUNG: { card: 'Tung Tung Sahur' },
+            SIGMA: { card: 'Sigma Stickman' },
+            DOOMSCROLL: { card: 'Doomscroll Dan' },
+            NPC: { card: 'NPC Stick' },
+            CRINGE: { card: 'Cringe Wizard' },
+        };
+
+        function redeemCode() {
+            const input = document.getElementById('redeem-input-main');
+            const msg = document.getElementById('redeem-msg-main');
+            const show = (text, color) => { msg.textContent = text; msg.style.color = color; };
+
+            const code = (input.value || '').trim().toUpperCase();
+            if (!code) return show('Type a code first.', '#fca5a5');
+
+            const reward = REDEEM_CODES[code];
+            if (!reward) return show('That code is not valid.', '#fca5a5');
+
+            gameState.redeemedCodes = gameState.redeemedCodes || [];
+            if (gameState.redeemedCodes.includes(code)) return show('You already used that code.', '#fca5a5');
+
+            if (reward.card) {
+                const preset = SECRET_POOL.find(p => p.name === reward.card);
+                if (!preset) return show('That reward is not available right now.', '#fca5a5');
+                gameState.inventory.push({
+                    id: 'code_' + Date.now() + '_' + Math.floor(Math.random() * 1e6),
+                    name: preset.name, rarity: 'Mythic', secret: true,
+                    pose: preset.pose, head: preset.head, weapon: preset.weapon,
+                    stickColor: preset.stickColor, auraColor: preset.auraColor,
+                    ability: preset.ability, power: 2500, flipped: true,
+                });
+            }
+            if (reward.coins) gameState.coins += reward.coins;
+
+            gameState.redeemedCodes.push(code);
+            saveGameState();
+            updateUI();
+            renderAlbum();
+            playSound('mythic');
+            input.value = '';
+            show(reward.card ? `Unlocked the secret card ${reward.card}!` : `+${reward.coins} coins added!`, '#86efac');
+        }
+
+        function switchTab(tabId) {
+            playSound('click');
+            document.querySelectorAll('.tab-view').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.nav-tab').forEach(el => {
+                el.classList.remove('bg-indigo-600', 'text-white', 'shadow-lg');
+                el.classList.add('text-gray-400');
+            });
+
+            document.getElementById(`view-${tabId}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`tab-btn-${tabId}`);
+            activeBtn.classList.add('bg-indigo-600', 'text-white', 'shadow-lg');
+            activeBtn.classList.remove('text-gray-400');
+
+            if (tabId === 'album') renderAlbum();
+            if (tabId === 'forge') updateForgePreview();
+        }
+
+        function togglePhoneMode() {
+            gameState.isPhoneMode = !gameState.isPhoneMode;
+            const main = document.getElementById('main-layout');
+            if (gameState.isPhoneMode) {
+                main.classList.remove('max-w-7xl');
+                main.classList.add('max-w-md');
+            } else {
+                main.classList.remove('max-w-md');
+                main.classList.add('max-w-7xl');
+            }
+            saveGameState();
+        }
+
+        function toggleModal(modalId, show) {
+            playSound('click');
+            const modal = document.getElementById(modalId);
+            if (show) {
+                modal.classList.remove('hidden');
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        function updateUI() {
+            renderShopPacks();
+            document.getElementById('global-coins').innerText = gameState.coins.toLocaleString();
+            refreshTrainingCap();
+        }
+
+        /* ==========================================================================
+           SHOP & PACK OPENING SIMULATION
+           ========================================================================== */
+        function renderShopPacks() {
+            const grid = document.getElementById('pack-grid');
+            if (!grid) return;
+            grid.innerHTML = PACKS_DATA.map(pack => {
+                const tiers = Object.entries(pack.rates).filter(([, r]) => r > 0);
+                const bar = tiers.map(([rar, r]) =>
+                    `<div title="${rar}: ${r}%" style="width:${r}%; background:${RARITY_CONFIG[rar].color}"></div>`).join('');
+                const best = tiers[tiers.length - 1][0];
+                const canAfford = gameState.coins >= pack.cost;
+                const short = (pack.cost - gameState.coins).toLocaleString();
+
+                return `
+                <div class="pack-card glass-panel relative overflow-hidden rounded-2xl border border-gray-800 p-4 flex flex-col gap-4" style="--pack-glow:${pack.accent}66">
+                    <div class="relative h-36 rounded-xl bg-gradient-to-br ${pack.themeColor} flex items-center justify-center overflow-hidden">
+                        <div class="absolute inset-0 pack-shine pointer-events-none"></div>
+                        <span class="text-6xl animate-float drop-shadow-lg">${pack.icon}</span>
+                        <span class="absolute top-2 left-2 bg-black/40 text-white text-[10px] font-bold px-2 py-0.5 rounded-full border border-white/10">${pack.cardsPerPack} cards</span>
+                        ${pack.featured ? '<span class="absolute top-2 right-2 bg-yellow-400 text-black text-[10px] font-black px-2 py-0.5 rounded-full">FEATURED</span>' : ''}
+                    </div>
+                    <div class="space-y-1">
+                        <h3 class="font-extrabold text-base text-white">${pack.title}</h3>
+                        <p class="text-xs text-gray-400 min-h-[2rem]">${pack.desc}</p>
+                    </div>
+                    <div class="space-y-1.5">
+                        <div class="flex justify-between text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                            <span>Drop rates</span>
+                            <span>Best pull: <span style="color:${RARITY_CONFIG[best].color}">${best}</span></span>
+                        </div>
+                        <div class="flex h-2 rounded-full overflow-hidden bg-gray-900 border border-gray-800">${bar}</div>
+                    </div>
+                    <button onclick="buyPack('${pack.id}')" ${canAfford ? '' : 'disabled'}
+                        class="mt-auto w-full py-2.5 rounded-xl font-extrabold text-xs sm:text-sm transition flex items-center justify-center gap-2 ${canAfford ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/25' : 'bg-gray-800 text-gray-500 cursor-not-allowed'}">
+                        ${canAfford ? `Open Pack • <span class="text-yellow-300">🪙 ${pack.cost.toLocaleString()}</span>` : `Need ${short} more coins`}
+                    </button>
+                </div>`;
+            }).join('');
+        }
+
+        function buyPack(packId) {
+            const pack = PACKS_DATA.find(p => p.id === packId);
+            if (!pack || gameState.coins < pack.cost) return;
+
+            gameState.coins -= pack.cost;
+            saveGameState();
+            updateUI();
+            playSound('flip');
+
+            currentActivePackCards = [];
+            for (let i = 0; i < pack.cardsPerPack; i++) {
+                currentActivePackCards.push(generateRandomCard(pack));
+            }
+            // Highest rarity inside: used for the burst colour, so the reveal feels earned
+            const best = currentActivePackCards.reduce((top, c) =>
+                RARITY_ORDER.indexOf(c.rarity) > RARITY_ORDER.indexOf(top.rarity) ? c : top);
+
+            document.getElementById('unboxing-pack-title').innerText = pack.title;
+            document.getElementById('unboxing-subtitle').innerText = 'Something stirs inside...';
+            document.getElementById('unboxing-stage').classList.remove('screen-shake');
+            document.getElementById('unboxing-rays').style.opacity = '0.3';
+            setFxColor(pack.accent);
+
+            // Sealed pack, shaking on screen
+            const stage = document.getElementById('pack-stage');
+            stage.className = `relative w-44 h-56 sm:w-52 sm:h-64 rounded-2xl bg-gradient-to-br ${pack.themeColor} shadow-2xl flex items-center justify-center text-7xl border-2 border-white/25 pack-shaking`;
+            stage.innerHTML = `<span>${pack.icon}</span>`;
+
+            // Cards are built now but stay hidden until the burst
+            const container = document.getElementById('unboxing-cards-container');
+            container.innerHTML = '';
+            container.classList.add('hidden');
+            document.getElementById('unboxing-actions').classList.add('hidden');
+
+            currentActivePackCards.forEach((card, idx) => {
+                const cardEl = document.createElement('div');
+                cardEl.className = 'w-48 h-72 perspective-1000 cursor-pointer';
+                cardEl.onclick = () => { if (!unboxingBusy) flipCard(idx); };
+                cardEl.innerHTML = `
+                    <div id="pack-card-inner-${idx}" class="card-inner">
+                        <div class="card-front glass-panel border-2 border-indigo-500/40 flex flex-col items-center justify-center space-y-2 p-4">
+                            <span class="text-4xl">⚡</span>
+                            <span class="text-xs font-bold text-gray-400">TAP TO REVEAL</span>
+                        </div>
+                        <div class="card-back" id="pack-card-back-${idx}"></div>
+                    </div>
+                `;
+                container.appendChild(cardEl);
+                document.getElementById(`pack-card-back-${idx}`).appendChild(createCardHTMLElement(card));
+            });
+
+            toggleModal('unboxing-modal', true);
+            unboxingBusy = true;
+            fxAmbientOn = true;
+            startFxLoop();
+
+            // Sparks drift off the pack while it shakes
+            const sparkTimer = setInterval(() => {
+                const r = stage.getBoundingClientRect();
+                fxBurst(r.left + r.width / 2 + (Math.random() - 0.5) * r.width * 0.6,
+                        r.top + r.height * 0.8, 2, [pack.accent, '#ffffff'], 0.4);
+            }, 70);
+            unboxTimers.push(sparkTimer);
+            unboxTimers.push(setTimeout(() => {
+                clearInterval(sparkTimer);
+                openPackBurst(pack, best);
+            }, 1600));
+        }
+
+        function openPackBurst(pack, best) {
+            const stage = document.getElementById('pack-stage');
+            stage.classList.remove('pack-shaking');
+            stage.classList.add('pack-burst');
+
+            const color = RARITY_CONFIG[best.rarity].color;
+            setFxColor(color);
+            document.getElementById('unboxing-rays').style.opacity = '0.6';
+
+            const r = stage.getBoundingClientRect();
+            fxBurst(r.left + r.width / 2, r.top + r.height / 2, 140, [color, pack.accent, '#ffffff', '#fde68a'], 1.5);
+            flashScreen(color, 0.5);
+            shakeElement(document.getElementById('unboxing-stage'));
+            playSound(RARITY_ORDER.indexOf(best.rarity) >= 4 ? 'mythic' : 'coin');
+
+            unboxTimers.push(setTimeout(() => {
+                stage.classList.add('hidden');
+                stage.classList.remove('pack-burst');
+
+                const container = document.getElementById('unboxing-cards-container');
+                container.classList.remove('hidden');
+                [...container.children].forEach((el, i) => {
+                    el.classList.add('card-rise');
+                    el.style.animationDelay = `${i * 120}ms`;
+                });
+
+                document.getElementById('unboxing-actions').classList.remove('hidden');
+                document.getElementById('unboxing-subtitle').innerText = 'Tap cards to flip and reveal!';
+                unboxingBusy = false;
+            }, 500));
+        }
+
+        function generateRandomCard(pack) {
+            // Determine rarity by weight
+            const rand = Math.random() * 100;
+            let accumulated = 0;
+            let chosenRarity = 'Common';
+
+            for (const [rarity, rate] of Object.entries(pack.rates)) {
+                accumulated += rate;
+                if (rand <= accumulated) {
+                    chosenRarity = rarity;
+                    break;
+                }
+            }
+
+            const isSecret = Math.random() < SECRET_CHANCE;
+            if (isSecret) chosenRarity = 'Mythic';
+            const pool = CARD_PRESETS.filter(p => p.pack === pack.id);
+            const source = pool.length ? pool : CARD_PRESETS;
+            const preset = isSecret
+                ? SECRET_POOL[Math.floor(Math.random() * SECRET_POOL.length)]
+                : source[Math.floor(Math.random() * source.length)];
+            const power = Math.floor(Math.random() * 400) + (RARITY_CONFIG[chosenRarity].value * 10);
+
+            return {
+                id: 'card_' + Date.now() + '_' + Math.floor(Math.random()*1000),
+                name: preset.name,
+                rarity: chosenRarity,
+                pose: preset.pose,
+                head: preset.head,
+                weapon: preset.weapon,
+                stickColor: preset.stickColor,
+                auraColor: preset.auraColor,
+                ability: preset.ability,
+                power: power,
+                secret: isSecret,
+                flipped: false
+            };
+        }
+
+        function createCardHTMLElement(card) {
+            const config = RARITY_CONFIG[card.rarity] || RARITY_CONFIG.Common;
+            const wrap = document.createElement('div');
+            wrap.className = `w-full h-full rounded-2xl border-2 p-3 flex flex-col justify-between shadow-2xl bg-gradient-to-b ${config.bg}`;
+            wrap.style.borderColor = config.border;
+            if (card.secret) {
+                wrap.style.borderColor = '#84cc16';
+                wrap.classList.add('secret-card');
+            }
+
+            const canvasId = 'cv_' + card.id;
+
+            wrap.innerHTML = `
+                <div class="flex items-center justify-between text-[10px] font-bold">
+                    ${card.secret ? '<span class="secret-label">✦ SECRET</span>' : `<span style="color: ${config.color}">${card.rarity.toUpperCase()}</span>`}
+                    <span class="text-yellow-400">⚡ ${card.power}</span>
+                </div>
+                <div class="my-auto flex items-center justify-center">
+                    <canvas id="${canvasId}" width="160" height="180" class="rounded-xl"></canvas>
+                </div>
+                <div>
+                    <h4 class="font-extrabold text-xs text-white truncate text-center">${card.name}</h4>
+                    <p class="text-[9px] text-gray-400 text-center truncate">${card.ability}</p>
+                </div>
+            `;
+
+            setTimeout(() => {
+                const cv = document.getElementById(canvasId);
+                if (cv) drawStickmanCanvas(cv, card);
+            }, 50);
+
+            return wrap;
+        }
+
+        /* ==========================================================================
+           PACK OPENING FX ENGINE (BURSTS, SPARKS, FLASHES)
+           ========================================================================== */
+        let unboxingBusy = false;
+        let unboxTimers = [];
+        const RARITY_ORDER = ['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary', 'Mythic'];
+
+        const fxCanvas = document.getElementById('fx-canvas');
+        const fxCtx = fxCanvas.getContext('2d');
+        let fxParticles = [];
+        let fxRaf = null;
+        let fxAmbientOn = false;
+
+        function resizeFx() {
+            fxCanvas.width = window.innerWidth;
+            fxCanvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeFx);
+        resizeFx();
+
+        function setFxColor(color) {
+            document.getElementById('unboxing-modal').style.setProperty('--fx-color', color);
+        }
+
+        function flashScreen(color, strength = 0.6) {
+            const flash = document.getElementById('unboxing-flash');
+            flash.style.background = color;
+            flash.animate([{ opacity: strength }, { opacity: 0 }], { duration: 700, easing: 'ease-out' });
+        }
+
+        function shakeElement(el) {
+            el.classList.remove('screen-shake');
+            void el.offsetWidth; // restart the animation
+            el.classList.add('screen-shake');
+        }
+
+        function fxBurst(x, y, count, colors, power = 1) {
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = (2 + Math.random() * 7) * power;
+                fxParticles.push({
+                    x, y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed - 2 * power,
+                    gravity: 0.14,
+                    life: 1,
+                    decay: 0.008 + Math.random() * 0.012,
+                    size: 4 + Math.random() * 6,
+                    rot: Math.random() * Math.PI,
+                    vr: (Math.random() - 0.5) * 0.3,
+                    color: colors[i % colors.length],
+                    shape: Math.random() < 0.5 ? 'rect' : 'circle'
+                });
+            }
+            startFxLoop();
+        }
+
+        function spawnAmbientSpark() {
+            fxParticles.push({
+                x: Math.random() * fxCanvas.width,
+                y: fxCanvas.height + 10,
+                vx: (Math.random() - 0.5) * 0.5,
+                vy: -(0.5 + Math.random() * 1.3),
+                gravity: 0,
+                life: 1,
+                decay: 0.0025 + Math.random() * 0.002,
+                size: 2 + Math.random() * 3,
+                rot: 0, vr: 0,
+                color: '#ffffff',
+                shape: 'circle'
+            });
+        }
+
+        function startFxLoop() {
+            if (fxRaf) return;
+            const frame = () => {
+                fxCtx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+                if (fxAmbientOn && Math.random() < 0.3) spawnAmbientSpark();
+
+                fxParticles = fxParticles.filter(p => p.life > 0);
+                for (const p of fxParticles) {
+                    p.x += p.vx; p.y += p.vy; p.vy += p.gravity; p.vx *= 0.99;
+                    p.life -= p.decay; p.rot += p.vr;
+
+                    fxCtx.save();
+                    fxCtx.globalAlpha = Math.max(0, p.life);
+                    fxCtx.fillStyle = p.color;
+                    fxCtx.translate(p.x, p.y);
+                    fxCtx.rotate(p.rot);
+                    if (p.shape === 'rect') {
+                        fxCtx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
+                    } else {
+                        fxCtx.beginPath();
+                        fxCtx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+                        fxCtx.fill();
+                    }
+                    fxCtx.restore();
+                }
+
+                fxRaf = (fxParticles.length || fxAmbientOn) ? requestAnimationFrame(frame) : null;
+            };
+            fxRaf = requestAnimationFrame(frame);
+        }
+
+        /* ==========================================================================
+           CARD REVEAL & COLLECTION
+           ========================================================================== */
+        function flipCard(index) {
+            const card = currentActivePackCards[index];
+            if (!card || card.flipped) return;
+
+            card.flipped = true;
+            const inner = document.getElementById(`pack-card-inner-${index}`);
+            inner.classList.add('is-flipped');
+            gameState.inventory.push(card);
+            saveGameState();
+
+            const cfg = RARITY_CONFIG[card.rarity];
+            const r = inner.getBoundingClientRect();
+            const cx = r.left + r.width / 2;
+            const cy = r.top + r.height / 2;
+            const tier = RARITY_ORDER.indexOf(card.rarity);
+
+            if (tier >= 4) {            // Legendary / Mythic: big moment
+                playSound('mythic');
+                fxBurst(cx, cy, 120, [cfg.color, '#ffffff', '#fde68a'], 1.6);
+                flashScreen(cfg.color, 0.45);
+                shakeElement(document.getElementById('unboxing-stage'));
+                setFxColor(cfg.color);
+            } else if (tier === 3) {    // Epic
+                playSound('flip');
+                fxBurst(cx, cy, 60, [cfg.color, '#ffffff'], 1.1);
+                setFxColor(cfg.color);
+            } else {
+                playSound('flip');
+                fxBurst(cx, cy, 24, [cfg.color, '#ffffff'], 0.7);
+            }
+        }
+
+        function revealAllPackCards() {
+            currentActivePackCards.forEach((_, idx) => flipCard(idx));
+        }
+
+        function closeUnboxingModal() {
+            unboxTimers.forEach(clearTimeout);
+            unboxTimers = [];
+            revealAllPackCards();
+            unboxingBusy = false;
+            fxAmbientOn = false;
+            fxParticles = [];
+            fxCtx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+            toggleModal('unboxing-modal', false);
+        }
+
+        /* ==========================================================================
+           TRAINING DOJO MINIGAMES (SHARED DAILY CAP)
+           ========================================================================== */
+        const DAILY_TRAINING_CAP = 10000;
+
+        // Shared controllers so every minigame cleans up after itself
+        let arenaTimeouts = [];
+        let arenaFrame = null;
+        let arenaStop = null;
+
+        function later(fn, ms) {
+            arenaTimeouts.push(setTimeout(fn, ms));
+        }
+
+        function clearArena() {
+            arenaTimeouts.forEach(clearTimeout);
+            arenaTimeouts = [];
+            if (arenaFrame) cancelAnimationFrame(arenaFrame);
+            arenaFrame = null;
+            if (arenaStop) arenaStop();
+            arenaStop = null;
+        }
+
+        function getTrainingRemaining() {
+            return Math.max(0, DAILY_TRAINING_CAP - gameState.dailyTrainingCoins);
+        }
+
+        function refreshTrainingCap() {
+            const earned = gameState.dailyTrainingCoins;
+            const pct = Math.min(100, (earned / DAILY_TRAINING_CAP) * 100);
+            document.getElementById('training-cap-text').innerText =
+                `${earned.toLocaleString()} / ${DAILY_TRAINING_CAP.toLocaleString()} Coins`;
+            document.getElementById('training-progress-bar').style.width = `${pct}%`;
+        }
+
+        // Pays out training coins while respecting the daily cap. Returns the amount actually paid.
+        function payTraining(amount) {
+            const paid = Math.min(amount, getTrainingRemaining());
+            if (paid <= 0) return 0;
+            gameState.dailyTrainingCoins += paid;
+            gameState.coins += paid;
+            playSound('coin');
+            saveGameState();
+            updateUI();
+            return paid;
+        }
+
+        function payoutText(paid) {
+            if (paid > 0) {
+                return getTrainingRemaining() === 0
+                    ? `+${paid} coins. Daily cap reached!`
+                    : `+${paid} coins`;
+            }
+            return 'No coins this time';
+        }
+
+        function showResult(html, tone = 'text-white') {
+            const el = document.getElementById('training-result');
+            if (!el) return;
+            el.innerHTML = html;
+            el.className = `text-sm font-extrabold min-h-[1.5rem] ${tone}`;
+        }
+
+        function setActionBtn(text, disabled = false) {
+            const btn = document.getElementById('training-action-btn');
+            if (!btn) return;
+            btn.innerText = text;
+            btn.disabled = disabled;
+            btn.classList.toggle('opacity-40', disabled);
+            btn.classList.toggle('cursor-not-allowed', disabled);
+        }
+
+        // Returns true (and shows a notice) when the daily cap is already full
+        function capReached() {
+            if (getTrainingRemaining() > 0) return false;
+            showResult('Daily cap reached. Come back tomorrow to train for more coins!', 'text-amber-300');
+            return true;
+        }
+
+        function selectMinigame(mg) {
+            playSound('click');
+            clearArena();
+            activeMinigame = mg;
+            document.querySelectorAll('.mg-tab').forEach(b => {
+                b.classList.remove('bg-gray-800', 'border-gray-700', 'text-white');
+                b.classList.add('bg-gray-900', 'border-gray-800', 'text-gray-400');
+            });
+
+            const activeBtn = document.getElementById(`mg-btn-${mg}`);
+            activeBtn.classList.add('bg-gray-800', 'border-gray-700', 'text-white');
+            activeBtn.classList.remove('bg-gray-900', 'border-gray-800', 'text-gray-400');
+
+            renderMinigameArena();
+        }
+
+        function renderMinigameArena() {
+            const arena = document.getElementById('minigame-arena');
+            const views = {
+                timing: renderReflexStrike,
+                speed: renderSpeedPunch,
+                target: renderTargetReflex,
+                power: renderPowerLift
+            };
+            (views[activeMinigame] || (() => {}))(arena);
+        }
+
+        /* ---------- 1. REFLEX STRIKE: stop the meter in the zone ---------- */
+        let timingPos = 0;
+        let timingDir = 1;
+        let timingRunning = false;
+        let timingLast = 0;
+
+        function renderReflexStrike(arena) {
+            arena.innerHTML = `
+                <div class="space-y-4 w-full max-w-md">
+                    <p class="text-xs font-bold text-gray-300">Stop the meter in the green zone. The gold centre is a Perfect!</p>
+                    <div class="relative w-full h-8 bg-gray-900 rounded-xl overflow-hidden border border-gray-700">
+                        <div class="absolute top-0 h-full bg-emerald-500/30 border-x-2 border-emerald-400" style="left:40%;width:20%"></div>
+                        <div class="absolute top-0 h-full bg-yellow-400/40" style="left:46%;width:8%"></div>
+                        <div id="timing-bar" class="absolute top-0 h-full w-1.5 bg-white shadow-lg" style="left:0%"></div>
+                    </div>
+                    <p id="training-result" class="text-sm font-extrabold min-h-[1.5rem]"></p>
+                    <button id="training-action-btn" onclick="timingAction()" class="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-extrabold text-xs text-white shadow-lg transition">
+                        🎯 STRIKE!
+                    </button>
+                </div>
+            `;
+            startTimingMeter();
+        }
+
+        function startTimingMeter() {
+            timingPos = 0;
+            timingDir = 1;
+            timingRunning = true;
+            timingLast = performance.now();
+
+            const step = now => {
+                if (!timingRunning) return;
+                const dt = now - timingLast;
+                timingLast = now;
+                timingPos += dt * 0.06 * timingDir; // about 60% per second
+                if (timingPos >= 98) { timingPos = 98; timingDir = -1; }
+                if (timingPos <= 0) { timingPos = 0; timingDir = 1; }
+                const bar = document.getElementById('timing-bar');
+                if (bar) bar.style.left = timingPos + '%';
+                arenaFrame = requestAnimationFrame(step);
+            };
+
+            arenaFrame = requestAnimationFrame(step);
+            arenaStop = () => { timingRunning = false; };
+        }
+
+        function timingAction() {
+            if (timingRunning) return strikeTimingMeter();
+            if (capReached()) return;
+            showResult('');
+            setActionBtn('🎯 STRIKE!');
+            startTimingMeter();
+        }
+
+        function strikeTimingMeter() {
+            timingRunning = false;
+            const pos = timingPos;
+            let label, reward, tone;
+            if (pos >= 46 && pos <= 54) {
+                label = 'PERFECT! 🎯'; reward = 100; tone = 'text-yellow-300';
+            } else if (pos >= 40 && pos <= 60) {
+                label = 'Good hit.'; reward = 60; tone = 'text-emerald-300';
+            } else {
+                label = 'Missed the zone.'; reward = 20; tone = 'text-gray-300';
+            }
+            const paid = payTraining(reward);
+            showResult(`${label} ${payoutText(paid)}`, tone);
+            setActionBtn('▶ NEXT ROUND');
+        }
+
+        /* ---------- 2. SPEED PUNCH: 10-second tapping round ---------- */
+        let punchTaps = 0;
+        let punchRunning = false;
+        let punchEnd = 0;
+
+        function renderSpeedPunch(arena) {
+            arena.innerHTML = `
+                <div class="space-y-4 w-full max-w-md flex flex-col items-center">
+                    <p class="text-xs font-bold text-gray-300">Land as many punches as you can in 10 seconds. Each punch pays 4 coins!</p>
+                    <div class="flex items-end justify-center gap-8">
+                        <div>
+                            <p id="punch-count" class="text-3xl font-black text-white">0</p>
+                            <p class="text-[10px] text-gray-400 uppercase tracking-wider">Punches</p>
+                        </div>
+                        <div>
+                            <p id="punch-time" class="text-3xl font-black text-indigo-300">10.0</p>
+                            <p class="text-[10px] text-gray-400 uppercase tracking-wider">Seconds</p>
+                        </div>
+                    </div>
+                    <button id="punch-bag" onclick="landPunch()" disabled class="w-28 h-28 rounded-full bg-gradient-to-tr from-red-600 to-orange-500 text-4xl shadow-xl flex items-center justify-center hover:scale-105 active:scale-95 transition disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:scale-100">
+                        🥊
+                    </button>
+                    <p id="training-result" class="text-sm font-extrabold min-h-[1.5rem]"></p>
+                    <button id="training-action-btn" onclick="startSpeedRound()" class="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-extrabold text-xs text-white shadow-lg transition">
+                        ▶ START ROUND
+                    </button>
+                </div>
+            `;
+        }
+
+        function startSpeedRound() {
+            if (capReached()) return;
+            punchTaps = 0;
+            punchRunning = true;
+            punchEnd = performance.now() + 10000;
+            document.getElementById('punch-count').innerText = '0';
+            document.getElementById('punch-bag').disabled = false;
+            showResult('Go go go!', 'text-indigo-300');
+            setActionBtn('Round in progress...', true);
+
+            const tick = now => {
+                if (!punchRunning) return;
+                const left = Math.max(0, punchEnd - now);
+                document.getElementById('punch-time').innerText = (left / 1000).toFixed(1);
+                if (left <= 0) return finishSpeedRound();
+                arenaFrame = requestAnimationFrame(tick);
+            };
+
+            arenaFrame = requestAnimationFrame(tick);
+            arenaStop = () => { punchRunning = false; };
+        }
+
+        function landPunch() {
+            if (!punchRunning) return;
+            punchTaps++;
+            document.getElementById('punch-count').innerText = punchTaps;
+        }
+
+        function finishSpeedRound() {
+            punchRunning = false;
+            arenaFrame = null;
+            document.getElementById('punch-bag').disabled = true;
+            document.getElementById('punch-time').innerText = '0.0';
+            const paid = payTraining(punchTaps * 4);
+            showResult(`${punchTaps} punches! ${payoutText(paid)}`, 'text-emerald-300');
+            setActionBtn('🔁 GO AGAIN');
+        }
+
+        /* ---------- 3. TARGET REFLEX: react to a surprise target ---------- */
+        let targetPhase = 'idle'; // idle | waiting | live | done
+        let targetShownAt = 0;
+
+        function renderTargetReflex(arena) {
+            arena.innerHTML = `
+                <div class="space-y-4 w-full max-w-md">
+                    <p class="text-xs font-bold text-gray-300">Wait for the target to appear, then hit it fast. Tapping early ends the round!</p>
+                    <div id="target-field" onclick="targetFieldClick()" class="relative w-full h-48 rounded-xl bg-gray-900/70 border border-gray-700 overflow-hidden select-none">
+                        <p class="absolute inset-0 flex items-center justify-center text-xs text-gray-500">Press start when ready</p>
+                    </div>
+                    <p id="training-result" class="text-sm font-extrabold min-h-[1.5rem]"></p>
+                    <button id="training-action-btn" onclick="startTargetRound()" class="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-extrabold text-xs text-white shadow-lg transition">
+                        ▶ START ROUND
+                    </button>
+                </div>
+            `;
+            targetPhase = 'idle';
+        }
+
+        function startTargetRound() {
+            if (capReached()) return;
+            targetPhase = 'waiting';
+            document.getElementById('target-field').innerHTML =
+                '<p class="absolute inset-0 flex items-center justify-center text-xs text-gray-500">Wait for it...</p>';
+            showResult('Wait for it...', 'text-gray-300');
+            setActionBtn('Get ready...', true);
+            later(showTarget, 1000 + Math.random() * 2500);
+        }
+
+        function showTarget() {
+            if (targetPhase !== 'waiting') return;
+            const field = document.getElementById('target-field');
+            field.innerHTML = '';
+
+            const dot = document.createElement('button');
+            dot.id = 'target-dot';
+            dot.className = 'absolute w-14 h-14 rounded-full bg-red-500 border-4 border-white shadow-lg shadow-red-500/50 hover:scale-105 transition';
+            dot.style.left = (8 + Math.random() * 70) + '%';
+            dot.style.top = (8 + Math.random() * 60) + '%';
+            dot.onclick = e => { e.stopPropagation(); hitTarget(); };
+            field.appendChild(dot);
+
+            targetPhase = 'live';
+            targetShownAt = performance.now();
+            showResult('NOW! 🎯', 'text-red-300');
+            later(targetExpired, 1200);
+        }
+
+        function targetFieldClick() {
+            if (targetPhase === 'waiting') {
+                targetPhase = 'done';
+                showResult('Too early! No coins this round.', 'text-red-400');
+                setActionBtn('🔁 TRY AGAIN');
+            }
+        }
+
+        function hitTarget() {
+            if (targetPhase !== 'live') return;
+            const ms = Math.round(performance.now() - targetShownAt);
+            targetPhase = 'done';
+            document.getElementById('target-dot')?.remove();
+
+            let grade, reward;
+            if (ms < 350)      { grade = 'Lightning!'; reward = 90; }
+            else if (ms < 600) { grade = 'Quick!';     reward = 60; }
+            else if (ms < 900) { grade = 'Solid.';     reward = 35; }
+            else               { grade = 'Slow.';      reward = 15; }
+
+            const paid = payTraining(reward);
+            showResult(`${grade} ${ms} ms. ${payoutText(paid)}`, 'text-emerald-300');
+            setActionBtn('🔁 GO AGAIN');
+        }
+
+        function targetExpired() {
+            if (targetPhase !== 'live') return;
+            targetPhase = 'done';
+            document.getElementById('target-dot')?.remove();
+            showResult('Too slow! Better luck next round.', 'text-gray-400');
+            setActionBtn('🔁 GO AGAIN');
+        }
+
+        /* ---------- 4. POWER LIFT: hold to charge, release in the gold zone ---------- */
+        let chargeLevel = 0;
+        let chargeRunning = false;
+        let chargeLast = 0;
+
+        function renderPowerLift(arena) {
+            arena.innerHTML = `
+                <div class="space-y-4 w-full max-w-md">
+                    <p class="text-xs font-bold text-gray-300">Hold to charge, then release inside the gold zone. Go past 100 and you overload!</p>
+                    <div class="relative w-full h-8 bg-gray-900 rounded-xl overflow-hidden border border-gray-700">
+                        <div class="absolute top-0 h-full bg-yellow-400/25 border-x-2 border-yellow-300" style="left:75%;width:15%"></div>
+                        <div id="charge-bar" class="absolute left-0 top-0 h-full bg-gradient-to-r from-indigo-500 to-violet-400" style="width:0%"></div>
+                    </div>
+                    <p id="training-result" class="text-sm font-extrabold min-h-[1.5rem]"></p>
+                    <button id="training-action-btn"
+                        onpointerdown="chargeStart()" onpointerup="chargeRelease()"
+                        onpointerleave="chargeRelease()" onpointercancel="chargeRelease()"
+                        class="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-extrabold text-xs text-white shadow-lg transition select-none touch-none">
+                        🏋️ HOLD TO LIFT
+                    </button>
+                </div>
+            `;
+        }
+
+        function chargeStart() {
+            if (chargeRunning || capReached()) return;
+            chargeLevel = 0;
+            chargeRunning = true;
+            chargeLast = performance.now();
+            showResult('Release in the gold zone!', 'text-yellow-300');
+            setActionBtn('Charging...');
+
+            const tick = now => {
+                if (!chargeRunning) return;
+                chargeLevel = Math.min(100, chargeLevel + (now - chargeLast) * 0.045); // about 2.2s to max
+                chargeLast = now;
+                const bar = document.getElementById('charge-bar');
+                if (bar) bar.style.width = chargeLevel + '%';
+                if (chargeLevel >= 100) return chargeRelease();
+                arenaFrame = requestAnimationFrame(tick);
+            };
+
+            arenaFrame = requestAnimationFrame(tick);
+            arenaStop = () => { chargeRunning = false; };
+        }
+
+        function chargeRelease() {
+            if (!chargeRunning) return;
+            chargeRunning = false;
+            if (arenaFrame) cancelAnimationFrame(arenaFrame);
+            arenaFrame = null;
+
+            const v = chargeLevel;
+            let reward, msg, tone;
+            if (v > 96)                                { reward = 0;   msg = 'Overloaded! No coins.'; tone = 'text-red-400'; }
+            else if (v >= 75 && v <= 90)               { reward = 120; msg = 'PERFECT LIFT! 🏆';      tone = 'text-yellow-300'; }
+            else if ((v >= 60 && v < 75) || (v > 90))  { reward = 50;  msg = 'Nice lift.';            tone = 'text-emerald-300'; }
+            else                                       { reward = 15;  msg = 'Too light.';            tone = 'text-gray-300'; }
+
+            const detail = reward > 0 ? ' ' + payoutText(payTraining(reward)) : '';
+            showResult(msg + detail, tone);
+            setActionBtn('🔁 LIFT AGAIN');
+        }
+
+        /* ==========================================================================
+           CUSTOM CARD FORGE
+           ========================================================================== */
+        function updateForgePreview() {
+            const name = document.getElementById('forge-name').value || 'Custom Hero';
+            const rarity = document.getElementById('forge-rarity').value;
+            const pose = document.getElementById('forge-pose').value;
+            const head = document.getElementById('forge-head').value;
+            const weapon = document.getElementById('forge-weapon').value;
+            const stickColor = document.getElementById('forge-color-stick').value;
+            const auraColor = document.getElementById('forge-color-aura').value;
+            const ability = document.getElementById('forge-ability').value || 'Custom ability.';
+
+            const card = { id: 'forge_preview', name, rarity, pose, head, weapon, stickColor, auraColor, ability, power: 1200 };
+            const container = document.getElementById('forge-card-container');
+            container.innerHTML = '';
+            container.appendChild(createCardHTMLElement(card));
+        }
+
+        function craftCustomCard() {
+            const rarity = document.getElementById('forge-rarity').value;
+            const cost = RARITY_CONFIG[rarity].sell * 2;
+
+            if (gameState.coins < cost) {
+                alert(`Crafting a ${rarity} card costs ${cost} coins!`);
+                return;
+            }
+
+            gameState.coins -= cost;
+
+            const name = document.getElementById('forge-name').value || 'Custom Hero';
+            const pose = document.getElementById('forge-pose').value;
+            const head = document.getElementById('forge-head').value;
+            const weapon = document.getElementById('forge-weapon').value;
+            const stickColor = document.getElementById('forge-color-stick').value;
+            const auraColor = document.getElementById('forge-color-aura').value;
+            const ability = document.getElementById('forge-ability').value;
+
+            const card = {
+                id: 'custom_' + Date.now(),
+                name, rarity, pose, head, weapon, stickColor, auraColor, ability,
+                power: Math.floor(Math.random()*300) + 1000
+            };
+
+            gameState.inventory.push(card);
+            saveGameState();
+            updateUI();
+            playSound('mythic');
+            alert(`Succesfully forged "${name}"! Check your album.`);
+        }
+
+        /* ==========================================================================
+           ALBUM & DISENCHANT SYSTEM
+           ========================================================================== */
+        let activeAlbumFilter = 'All';
+
+        function setAlbumFilter(filter) {
+            playSound('click');
+            activeAlbumFilter = filter;
+            document.querySelectorAll('.album-filter').forEach(b => {
+                b.classList.remove('bg-indigo-600', 'text-white');
+                b.classList.add('bg-gray-800', 'text-gray-400');
+            });
+            event.target.classList.add('bg-indigo-600', 'text-white');
+            event.target.classList.remove('bg-gray-800', 'text-gray-400');
+            renderAlbum();
+        }
+
+        function renderAlbum() {
+            const grid = document.getElementById('album-grid');
+            const search = document.getElementById('album-search').value.toLowerCase();
+
+            let items = gameState.inventory.filter(c => {
+                const matchFilter = activeAlbumFilter === 'All' || c.rarity === activeAlbumFilter;
+                const matchSearch = c.name.toLowerCase().includes(search);
+                return matchFilter && matchSearch;
+            });
+
+            // Metrics
+            document.getElementById('album-total-count').innerText = gameState.inventory.length;
+            const unique = new Set(gameState.inventory.map(c => c.name)).size;
+            document.getElementById('album-unique-count').innerText = `${unique} / ${CARD_PRESETS.length + SECRET_POOL.length}`;
+
+            const totalVal = gameState.inventory.reduce((sum, c) => sum + (RARITY_CONFIG[c.rarity]?.value || 0), 0);
+            document.getElementById('album-total-value').innerText = `${totalVal.toLocaleString()}g`;
+
+            grid.innerHTML = '';
+            if (items.length === 0) {
+                grid.innerHTML = `<p class="col-span-full text-center py-12 text-xs text-gray-500">No stickman cards found in album.</p>`;
+                return;
+            }
+
+            items.forEach(card => {
+                const el = document.createElement('div');
+                el.className = 'h-64 cursor-pointer hover:scale-105 transition';
+                el.onclick = () => inspectCard(card.id);
+                el.appendChild(createCardHTMLElement(card));
+                grid.appendChild(el);
+            });
+        }
+
+        function inspectCard(cardId) {
+            const card = gameState.inventory.find(c => c.id === cardId);
+            if (!card) return;
+
+            currentInspectedCardId = cardId;
+            const target = document.getElementById('inspect-card-target');
+            target.innerHTML = '';
+            target.appendChild(createCardHTMLElement(card));
+
+            document.getElementById('inspect-id').innerText = '#' + card.id.slice(-6);
+            document.getElementById('inspect-power').innerText = card.power;
+            document.getElementById('inspect-sell').innerText = `${RARITY_CONFIG[card.rarity].sell}g`;
+
+            toggleModal('inspect-modal', true);
+        }
+
+        function sellCurrentInspectedCard() {
+            if (!currentInspectedCardId) return;
+            const idx = gameState.inventory.findIndex(c => c.id === currentInspectedCardId);
+            if (idx !== -1) {
+                const card = gameState.inventory[idx];
+                const value = RARITY_CONFIG[card.rarity].sell;
+                gameState.coins += value;
+                gameState.inventory.splice(idx, 1);
+                saveGameState();
+                updateUI();
+                playSound('coin');
+                toggleModal('inspect-modal', false);
+                renderAlbum();
+            }
+        }
+
+        /* ==========================================================================
+           EXPORT & IMPORT BACKUP SYSTEM
+           ========================================================================== */
+        function exportSaveData() {
+            const jsonStr = JSON.stringify(gameState, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `stickman_save_${new Date().toISOString().slice(0, 10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            playSound('coin');
+        }
+
+        function importSaveFile(event) {
+            const input = event.target;
+            const status = document.getElementById('import-status');
+            const file = input.files[0];
+            if (!file) return;
+
+            if (!file.name.toLowerCase().endsWith('.json')) {
+                status.innerText = 'Please choose a .json file.';
+                input.value = '';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = () => {
+                try {
+                    const parsed = JSON.parse(reader.result);
+                    if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.inventory) || typeof parsed.coins !== 'number') {
+                        throw new Error('this is not a Stickman save file.');
+                    }
+                    if (!confirm('Replace your current save with this file? This cannot be undone.')) {
+                        status.innerText = 'Import cancelled.';
+                        return;
+                    }
+
+                    // Fill in any fields missing from older saves
+                    gameState = {
+                        coins: parsed.coins,
+                        dailyTrainingCoins: Number(parsed.dailyTrainingCoins) || 0,
+                        lastTrainingDate: parsed.lastTrainingDate || new Date().toISOString().slice(0, 10),
+                        inventory: parsed.inventory,
+                        isPhoneMode: !!parsed.isPhoneMode,
+                        redeemedCodes: Array.isArray(parsed.redeemedCodes) ? parsed.redeemedCodes : []
+                    };
+                    saveGameState();
+                    updateUI();
+                    renderAlbum();
+                    toggleModal('backup-modal', false);
+                    alert(`Save imported: ${gameState.inventory.length} cards.`);
+                } catch (e) {
+                    status.innerText = 'Could not import: ' + e.message;
+                } finally {
+                    input.value = '';
+                }
+            };
+            reader.onerror = () => { status.innerText = 'Could not read that file.'; input.value = ''; };
+            reader.readAsText(file);
+        }
+
+        function resetAllGameProgress() {
+            if (confirm("Are you sure you want to reset all game progress? This cannot be undone.")) {
+                localStorage.removeItem('STICKMAN_SIMULATOR_SAVE_V2');
+                location.reload();
+            }
+        }
+
+        /* ==========================================================================
+           INIT ON LOAD
+           ========================================================================== */
+        window.onload = () => {
+            loadGameState();
+            renderShopPacks();
+            selectMinigame('timing');
+
+            // Show tutorial on first launch
+            if (!localStorage.getItem('STICKMAN_TUTORIAL_SEEN')) {
+                toggleModal('tutorial-modal', true);
+                localStorage.setItem('STICKMAN_TUTORIAL_SEEN', 'true');
+            }
+        };
+    </script>
+    <script src="extras.js"></script>
+    <script src="cloud.js"></script>
+</body>
+</html>
