@@ -2,7 +2,7 @@
 //   POST /api/account { action: "create", username, password }  -> { words }
 //   POST /api/account { action: "login",  username, password, words } -> { token, username }
 const { generateSecretWords, generateRecoveryCode, normalizeWords, hashSecret, checkSecret, signSession, verifySession } = require('../lib/auth');
-const { getUser, createUser, updateUser, listUsers, createAdminMessage, listActiveMessages, createAdminMedia, listActiveMedia } = require('../lib/neon-storage');
+const { getUser, createUser, updateUser, listUsers, createAdminMessage, listActiveMessages, createAdminMedia, listActiveMedia, grantCoins, grantSecret, listWorldState, setWorldBackground } = require('../lib/neon-storage');
 
 const USERNAME_RE = /^[A-Za-z0-9_]{3,20}$/;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -41,6 +41,7 @@ module.exports = async (req, res) => {
   if (req.method === 'GET') {
     if (String(req.query?.resource || '') === 'messages') return res.json({ messages: await listActiveMessages() });
     if (String(req.query?.resource || '') === 'media') return res.json({ media: await listActiveMedia() });
+    if (String(req.query?.resource || '') === 'world') return res.json({ world: await listWorldState() });
     const auth = String(req.headers.authorization || '');
     const username = auth.startsWith('Bearer ') ? verifySession(auth.slice(7)) : null;
     const user = username && await getUser(username);
@@ -56,6 +57,32 @@ module.exports = async (req, res) => {
   const password = String(body.password || '');
 
   try {
+    if (body.action === 'grant-coins' || body.action === 'grant-secret' || body.action === 'set-background') {
+      const auth = String(req.headers.authorization || '');
+      const sessionUser = auth.startsWith('Bearer ') ? verifySession(auth.slice(7)) : null;
+      const sender = sessionUser && await getUser(sessionUser);
+      if (!sender || sender.role !== 'moderator') return res.status(403).json({ error: 'Moderator access required.' });
+      if (body.action === 'grant-coins') {
+        const target = String(body.targetUsername || '').trim().toLowerCase();
+        const amount = Number(body.amount);
+        if (!USERNAME_RE.test(target) || !Number.isInteger(amount) || amount < 1 || amount > 1000000) return res.status(400).json({ error: 'Enter a valid username and coin amount from 1 to 1,000,000.' });
+        const result = await grantCoins(target, amount);
+        if (!result) return res.status(404).json({ error: 'Player not found.' });
+        return res.json({ player: result });
+      }
+      if (body.action === 'grant-secret') {
+        const target = String(body.targetUsername || '').trim().toLowerCase();
+        const secretKey = String(body.secretKey || '').trim();
+        if (!USERNAME_RE.test(target) || !['double-jump', 'coin-magnet', 'shadow-mode', 'rainbow-trail', 'speed-burst'].includes(secretKey)) return res.status(400).json({ error: 'Choose a valid player and secret.' });
+        if (!await getUser(target)) return res.status(404).json({ error: 'Player not found.' });
+        const result = await grantSecret(target, secretKey, sessionUser);
+        return res.json({ granted: Boolean(result), secret: secretKey });
+      }
+      const background = String(body.background || 'aurora');
+      if (!['aurora', 'neon-rain', 'volcano', 'cyber-grid', 'matrix'].includes(background)) return res.status(400).json({ error: 'Invalid background.' });
+      return res.json({ world: await setWorldBackground(background, sessionUser) });
+    }
+
     if (body.action === 'broadcast-message') {
       const auth = String(req.headers.authorization || '');
       const sessionUser = auth.startsWith('Bearer ') ? verifySession(auth.slice(7)) : null;
