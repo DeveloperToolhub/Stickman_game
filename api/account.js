@@ -1,17 +1,10 @@
 // api/account.js: username accounts.
 //   POST /api/account { action: "create", username, password }  -> { words }
 //   POST /api/account { action: "login",  username, password, words } -> { token, username }
-const crypto = require('crypto');
 const { generateSecretWords, generateRecoveryCode, normalizeWords, hashSecret, checkSecret, signSession, verifySession } = require('../lib/auth');
 const { getUser, createUser, updateUser, listUsers } = require('../lib/neon-storage');
 
-// Pending email verification records are short-lived and never contain plaintext passwords.
-const pendingUsers = new Map();
 const USERNAME_RE = /^[A-Za-z0-9_]{3,20}$/;
-// Accept Gmail, iCloud, Yahoo, Outlook, Hotmail, and other standard email providers.
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i;
-const CODE_TTL_MS = 10 * 60 * 1000;
-const RESEND_FROM = `Stickman Game <${process.env.RESEND_EMAIL_DOMAIN ? `no-reply@${process.env.RESEND_EMAIL_DOMAIN}` : 'onboarding@resend.dev'}>`;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 
 async function verifyGoogleCredential(idToken) {
@@ -23,21 +16,6 @@ async function verifyGoogleCredential(idToken) {
   if (!['accounts.google.com', 'https://accounts.google.com'].includes(info.iss)) return null;
   if (!info.sub || Number(info.exp) * 1000 < Date.now()) return null;
   return info.sub;
-}
-
-async function sendVerificationEmail(email, code) {
-  if (!process.env.RESEND_API_KEY) throw new Error('Email service is not configured.');
-  const response = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      from: RESEND_FROM,
-      to: [email],
-      subject: 'Your Stickman Game verification code',
-      text: `Your Stickman Game verification code is ${code}. It expires in 10 minutes.`,
-    }),
-  });
-  if (!response.ok) throw new Error('Email delivery failed.');
 }
 
 const DEMO_ADMIN_USERNAME = 'admin';
@@ -81,31 +59,14 @@ module.exports = async (req, res) => {
       return res.json({ token: signSession(`google:${googleId}`), username: String(body.displayName || 'Google player').slice(0, 80), role: 'player' });
     }
 
-    if (body.action === 'send-code') {
-      const email = String(body.email || '').trim().toLowerCase();
-      if (!USERNAME_RE.test(username)) return res.status(400).json({ error: 'Enter a valid username.' });
-      if (!EMAIL_RE.test(email)) return res.status(400).json({ error: 'Enter a valid email address.' });
-      if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters.' });
-      if (await getUser(key)) return res.status(409).json({ error: 'That username is taken.' });
-      const code = String(crypto.randomInt(100000, 1000000));
-      const pendingFields = { username: key, email, password_hash: hashSecret(password), code_hash: hashSecret(code), code_expires: Date.now() + CODE_TTL_MS };
-      pendingUsers.set(key, pendingFields);
-      await sendVerificationEmail(email, code);
-      return res.json({ sent: true });
-    }
-
     if (body.action === 'create') {
-      const pending = pendingUsers.get(key);
-      const code = String(body.verificationCode || '').trim();
-      if (!pending || pending.code_expires < Date.now() || !checkSecret(code, pending.code_hash)) {
-        return res.status(401).json({ error: 'Enter the valid email verification code.' });
-      }
+      if (!USERNAME_RE.test(username)) return res.status(400).json({ error: 'Username must be 3-20 letters, numbers, or underscores.' });
+      if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters.' });
       if (await getUser(key)) return res.status(409).json({ error: 'That username is taken.' });
       const words = generateSecretWords(6);
       const recoveryCode = generateRecoveryCode();
-      const created = await createUser(key, { email: pending.email, password_hash: pending.password_hash, words_hash: hashSecret(words.join(' ')), recovery_hash: hashSecret(recoveryCode), failed_attempts: 0, locked_until: 0 });
+      const created = await createUser(key, { password_hash: hashSecret(password), words_hash: hashSecret(words.join(' ')), recovery_hash: hashSecret(recoveryCode), failed_attempts: 0, locked_until: 0 });
       if (!created) return res.status(409).json({ error: 'That username is taken.' });
-      pendingUsers.delete(key);
       return res.json({ words, recoveryCode });
     }
 
