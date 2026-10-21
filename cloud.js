@@ -272,7 +272,21 @@
     catch (e) { setStatus(e.message); }
   }
 
-  async function onGoogleCredential(resp) { await onToken(resp.credential); }
+  async function onGoogleCredential(resp) {
+    try {
+      const response = await fetch('/api/account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'google-login', credential: resp.credential }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Google sign-in failed.');
+      await onToken(data.token, data.role);
+    } catch (error) {
+      localStorage.removeItem(TOKEN_KEY);
+      setStatus(error.message);
+    }
+  }
 
   function signOut() {
     localStorage.removeItem(TOKEN_KEY);

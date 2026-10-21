@@ -9,6 +9,18 @@ const USERNAME_RE = /^[A-Za-z0-9_]{3,20}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i;
 const CODE_TTL_MS = 10 * 60 * 1000;
 const RESEND_FROM = `Stickman Game <${process.env.RESEND_EMAIL_DOMAIN ? `no-reply@${process.env.RESEND_EMAIL_DOMAIN}` : 'onboarding@resend.dev'}>`;
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+
+async function verifyGoogleCredential(idToken) {
+  if (!GOOGLE_CLIENT_ID || !idToken) return null;
+  const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`);
+  if (!response.ok) return null;
+  const info = await response.json();
+  if (info.aud !== GOOGLE_CLIENT_ID) return null;
+  if (!['accounts.google.com', 'https://accounts.google.com'].includes(info.iss)) return null;
+  if (!info.sub || Number(info.exp) * 1000 < Date.now()) return null;
+  return info.sub;
+}
 
 async function sendVerificationEmail(email, code) {
   if (!process.env.RESEND_API_KEY) throw new Error('Email service is not configured.');
@@ -57,6 +69,12 @@ module.exports = async (req, res) => {
   const password = String(body.password || '');
 
   try {
+    if (body.action === 'google-login') {
+      const googleId = await verifyGoogleCredential(String(body.credential || ''));
+      if (!googleId) return res.status(401).json({ error: 'Google sign-in expired. Please try again.' });
+      return res.json({ token: signSession(`google:${googleId}`), username: String(body.displayName || 'Google player').slice(0, 80), role: 'player' });
+    }
+
     if (body.action === 'send-code') {
       const email = String(body.email || '').trim().toLowerCase();
       if (!USERNAME_RE.test(username)) return res.status(400).json({ error: 'Enter a valid username.' });
