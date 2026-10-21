@@ -8,6 +8,7 @@
   const PUSH_DELAY_MS = 1500;
 
   let idToken = null;
+  let currentRole = 'player';
   let pushTimer = null;
   let pendingPush = false;
 
@@ -40,12 +41,14 @@
     bar.style.cssText = 'position:fixed;top:8px;right:8px;z-index:60;display:flex;gap:8px;align-items:center;font:600 12px Arial,sans-serif;color:#e5e7eb;background:rgba(17,24,39,.9);padding:6px 10px;border-radius:10px;';
     bar.innerHTML =
       '<span id="cloud-status">Not signed in</span>' +
+      '<button id="cloud-admin-btn" style="display:none;background:#7c3aed;color:#fff;border:0;border-radius:6px;padding:5px 9px;cursor:pointer;font:600 12px Arial,sans-serif;">Account directory</button>' +
       '<div id="google-signin"></div>' +
       '<button id="cloud-user-btn" style="background:#4f46e5;color:#fff;border:0;border-radius:6px;padding:5px 9px;cursor:pointer;font:600 12px Arial,sans-serif;">Username sign-in</button>' +
       '<button id="cloud-signout" style="display:none;background:#374151;color:#fff;border:0;border-radius:6px;padding:4px 8px;cursor:pointer;font:600 12px Arial,sans-serif;">Sign out</button>';
     document.body.appendChild(bar);
     document.getElementById('cloud-signout').onclick = signOut;
     document.getElementById('cloud-user-btn').onclick = openAccountModal;
+    document.getElementById('cloud-admin-btn').onclick = openAccountDirectory;
   }
 
   // ----- username account modal -----
@@ -68,6 +71,23 @@
     }
     modal.style.display = 'flex';
     showSignIn();
+  }
+
+  async function openAccountDirectory() {
+    const modal = document.getElementById('acct-modal');
+    if (!modal) return;
+    modal.style.display = 'flex';
+    document.getElementById('acct-body').innerHTML = '<h3 style="margin:0 0 4px;font-size:18px;color:#fff;">Account directory</h3><p id="acct-msg" style="color:#9ca3af;font-size:12px;">Loading accounts...</p>';
+    try {
+      const res = await fetch('/api/account', { headers: { Authorization: 'Bearer ' + idToken } });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Could not load accounts.');
+      const rows = data.users || [];
+      document.getElementById('acct-body').innerHTML = '<h3 style="margin:0 0 12px;font-size:18px;color:#fff;">Account directory</h3>' +
+        (rows.length ? '<div style="max-height:260px;overflow:auto;border:1px solid #374151;border-radius:8px;"><table style="width:100%;border-collapse:collapse;font-size:12px;"><thead><tr style="color:#a5b4fc;text-align:left;"><th style="padding:8px;">Username</th><th style="padding:8px;">Date created</th></tr></thead><tbody>' + rows.map((row) => '<tr style="border-top:1px solid #1f2937;"><td style="padding:8px;color:#fff;">' + row.username.replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])) + '</td><td style="padding:8px;color:#9ca3af;">' + new Date(row.created_at).toLocaleString() + '</td></tr>').join('') + '</tbody></table></div>' : '<p style="color:#9ca3af;font-size:12px;">No accounts created yet.</p>');
+    } catch (error) {
+      document.getElementById('acct-body').innerHTML = '<p style="color:#fca5a5;font-size:12px;">' + error.message + '</p>';
+    }
   }
 
   function showSignIn(prefill = '') {
@@ -137,7 +157,7 @@
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { msg.textContent = data.error || 'Could not sign in.'; return; }
       document.getElementById('acct-modal').style.display = 'none';
-      await onToken(data.token);
+      await onToken(data.token, data.role);
     } catch (e) { msg.textContent = 'Network error. Try again.'; }
   }
 
@@ -224,12 +244,14 @@
   });
 
   // ----- sign-in state -----
-  async function onToken(token) {
+  async function onToken(token, role) {
     idToken = token;
+    currentRole = role || (displayName(token) === 'admin' ? 'moderator' : 'player');
     localStorage.setItem(TOKEN_KEY, token);
     document.getElementById('google-signin').style.display = 'none';
     document.getElementById('cloud-user-btn').style.display = 'none';
     document.getElementById('cloud-signout').style.display = 'inline-block';
+    document.getElementById('cloud-admin-btn').style.display = currentRole === 'moderator' ? 'inline-block' : 'none';
     setStatus('Signed in as ' + displayName(token));
     try { await pullSave(); }
     catch (e) { setStatus(e.message); }
