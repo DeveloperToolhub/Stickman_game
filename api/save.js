@@ -1,35 +1,20 @@
 // api/save.js: stores each player's save in demo storage.
 //   GET /api/save  -> the signed-in player's save, or null
 //   PUT /api/save  -> stores the signed-in player's save
-// Send: Authorization: Bearer <token>. The token is either a Google ID token
-// or a username session token (starts with "v1.").
+// Send: Authorization: Bearer <token>. The token is a server session token
+// (starts with "v1.") for either Google or username accounts.
 
 const { verifySession } = require('../lib/auth');
 const { getSave, setSave } = require('../lib/demo-storage');
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const MAX_SAVE_BYTES = 2_000_000;
 
-// Returns the player's stable id: the Google user id, or null if the token is invalid.
-async function verifyGoogleToken(idToken) {
-  const res = await fetch(
-    `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`
-  );
-  if (!res.ok) return null;
-  const info = await res.json();
-  if (info.aud !== GOOGLE_CLIENT_ID) return null;
-  if (!['accounts.google.com', 'https://accounts.google.com'].includes(info.iss)) return null;
-  if (Number(info.exp) * 1000 < Date.now()) return null;
-  return info.sub;
-}
-
-// Returns the save key for this token. Username accounts are prefixed with "local:"
-// so they can never collide with Google ids.
+// All authenticated saves use server-signed sessions. Google identities are
+// prefixed separately so they cannot collide with username accounts.
 async function identityFor(token) {
-  if (token.startsWith('v1.')) {
-    const username = verifySession(token);
-    return username ? `local:${username}` : null;
-  }
-  return verifyGoogleToken(token);
+  if (!token.startsWith('v1.')) return null;
+  const subject = verifySession(token);
+  if (!subject) return null;
+  return subject.startsWith('google:') ? subject : `local:${subject}`;
 }
 
 function supabaseHeaders(extra = {}) {
