@@ -41,10 +41,10 @@ function checkSecret(value, stored) {
 }
 
 function sessionSecret() {
-  // Keep sessions working in the Vercel project without requiring another env var.
-  // The service-role key is already provisioned and is only used server-side.
+  // The Supabase service key is already provisioned for this project and keeps
+  // sessions signed even when an additional SESSION_SECRET is not configured.
   const secret = process.env.SESSION_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!secret) throw new Error('A server session secret is not configured.');
+  if (!secret) throw new Error('No session signing secret is configured.');
   return secret;
 }
 
