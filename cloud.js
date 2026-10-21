@@ -110,10 +110,13 @@
       <h3 style="margin:0 0 4px;font-size:18px;color:#fff;">Create account</h3>
       <p style="margin:0 0 10px;color:#9ca3af;font-size:12px;">No email needed. You'll get 6 secret words to sign in with. Write them down: they're shown only once and can't be recovered.</p>
       <label style="font-size:12px;">Username (3-20 letters, numbers, _)<input id="acct-user" style="${inputStyle}" autocomplete="username"></label>
+      <label style="font-size:12px;display:block;margin-top:8px;">Email address<input id="acct-email" type="email" style="${inputStyle}" autocomplete="email"></label>
       <label style="font-size:12px;display:block;margin-top:8px;">Password (at least 8 characters)<input id="acct-pass" type="password" style="${inputStyle}" autocomplete="new-password"></label>
       <p id="acct-msg" style="color:#fca5a5;font-size:12px;min-height:16px;margin:8px 0 0;"></p>
-      <button id="acct-create" style="${btnStyle}">Create account</button>
+      <button id="acct-send-code" style="${btnStyle}">Email verification code</button>
+      <div id="acct-code-wrap" style="display:none"><label style="font-size:12px;display:block;margin-top:8px;">Verification code<input id="acct-code" inputmode="numeric" maxlength="6" style="${inputStyle}" autocomplete="one-time-code"></label><button id="acct-create" style="${btnStyle}">Create account</button></div>
       <p style="text-align:center;font-size:12px;margin:12px 0 0;">Already have one? <a href="#" id="acct-to-signin" style="color:#a5b4fc;">Sign in</a></p>`;
+    document.getElementById('acct-send-code').onclick = sendSignupCode;
     document.getElementById('acct-create').onclick = doCreate;
     document.getElementById('acct-to-signin').onclick = (e) => { e.preventDefault(); showSignIn(); };
   }
@@ -130,16 +133,24 @@
     document.getElementById('acct-continue').onclick = () => showSignIn(username);
   }
 
+  async function sendSignupCode() {
+    const msg = document.getElementById('acct-msg');
+    msg.textContent = 'Sending verification code...';
+    try {
+      const res = await fetch('/api/account', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'send-code', username: document.getElementById('acct-user').value, email: document.getElementById('acct-email').value, password: document.getElementById('acct-pass').value }) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { msg.textContent = data.error || 'Could not send the code.'; return; }
+      document.getElementById('acct-code-wrap').style.display = 'block';
+      document.getElementById('acct-send-code').textContent = 'Resend code';
+      msg.style.color = '#86efac'; msg.textContent = 'Check your email for the 6-digit code.';
+    } catch (e) { msg.textContent = 'Network error. Try again.'; }
+  }
+
   async function doCreate() {
     const msg = document.getElementById('acct-msg');
-    msg.textContent = 'Creating...';
+    msg.style.color = '#fca5a5'; msg.textContent = 'Creating...';
     try {
-      const res = await fetch('/api/account', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'create',
-          username: document.getElementById('acct-user').value,
-          password: document.getElementById('acct-pass').value }),
-      });
+      const res = await fetch('/api/account', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'create', username: document.getElementById('acct-user').value, password: document.getElementById('acct-pass').value, verificationCode: document.getElementById('acct-code').value }) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { msg.textContent = data.error || 'Could not create the account.'; return; }
       showWords(document.getElementById('acct-user').value.trim(), data.words, data.recoveryCode);
