@@ -108,7 +108,7 @@
   function showCreate() {
     document.getElementById('acct-body').innerHTML = `
       <h3 style="margin:0 0 4px;font-size:18px;color:#fff;">Create account</h3>
-      <p style="margin:0 0 10px;color:#9ca3af;font-size:12px;">No email needed. You'll get 6 secret words to sign in with. Write them down: they're shown only once and can't be recovered.</p>
+      <p style="margin:0 0 10px;color:#9ca3af;font-size:12px;">Use a Gmail, iCloud, Yahoo, Outlook, Hotmail, or other valid email address for verification. You'll get 6 secret words to sign in with; write them down because they're shown only once.</p>
       <label style="font-size:12px;">Username (3-20 letters, numbers, _)<input id="acct-user" style="${inputStyle}" autocomplete="username"></label>
       <label style="font-size:12px;display:block;margin-top:8px;">Email address<input id="acct-email" type="email" style="${inputStyle}" autocomplete="email"></label>
       <label style="font-size:12px;display:block;margin-top:8px;">Password (at least 8 characters)<input id="acct-pass" type="password" style="${inputStyle}" autocomplete="new-password"></label>
