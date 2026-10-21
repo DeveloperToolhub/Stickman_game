@@ -3,7 +3,10 @@
 //   POST /api/account { action: "login",  username, password, words } -> { token, username }
 const crypto = require('crypto');
 const { generateSecretWords, generateRecoveryCode, normalizeWords, hashSecret, checkSecret, signSession, verifySession } = require('../lib/auth');
-const { getUser, createUser, updateUser } = require('../lib/demo-storage');
+const { getUser, createUser, updateUser, listUsers } = require('../lib/neon-storage');
+
+// Pending email verification records are short-lived and never contain plaintext passwords.
+const pendingUsers = new Map();
 const USERNAME_RE = /^[A-Za-z0-9_]{3,20}$/;
 // Accept Gmail, iCloud, Yahoo, Outlook, Hotmail, and other standard email providers.
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i;
@@ -37,29 +40,32 @@ async function sendVerificationEmail(email, code) {
   if (!response.ok) throw new Error('Email delivery failed.');
 }
 
-// Demo-only moderator credentials for previews without a database.
 const DEMO_ADMIN_USERNAME = 'admin';
 const DEMO_ADMIN_PASSWORD = 'admin12345';
 const DEMO_ADMIN_WORDS = 'admin mod stickman secure account access';
-createUser(DEMO_ADMIN_USERNAME, {
-  password_hash: hashSecret(DEMO_ADMIN_PASSWORD),
-  words_hash: hashSecret(DEMO_ADMIN_WORDS),
-  failed_attempts: 0,
-  locked_until: 0,
-  role: 'moderator',
-});
+
+async function ensureAdmin() {
+  if (await getUser(DEMO_ADMIN_USERNAME)) return;
+  await createUser(DEMO_ADMIN_USERNAME, {
+    password_hash: hashSecret(DEMO_ADMIN_PASSWORD),
+    words_hash: hashSecret(DEMO_ADMIN_WORDS),
+    failed_attempts: 0,
+    locked_until: 0,
+    role: 'moderator',
+  });
+}
 const MAX_ATTEMPTS = 5;
 const LOCK_MS = 15 * 60 * 1000;
 
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
+  await ensureAdmin();
   if (req.method === 'GET') {
     const auth = String(req.headers.authorization || '');
     const username = auth.startsWith('Bearer ') ? verifySession(auth.slice(7)) : null;
-    const user = username && getUser(username);
+    const user = username && await getUser(username);
     if (!user || user.role !== 'moderator') return res.status(403).json({ error: 'Moderator access required.' });
-    const { listUsers } = require('../lib/demo-storage');
-    return res.json({ users: listUsers().map(({ username: name, created_at }) => ({ username: name, created_at })) });
+    return res.json({ users: (await listUsers()).map(({ username: name, created_at }) => ({ username: name, created_at })) });
   }
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed.' });
 
@@ -80,33 +86,33 @@ module.exports = async (req, res) => {
       if (!USERNAME_RE.test(username)) return res.status(400).json({ error: 'Enter a valid username.' });
       if (!EMAIL_RE.test(email)) return res.status(400).json({ error: 'Enter a valid email address.' });
       if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters.' });
-      if (getUser(key)) return res.status(409).json({ error: 'That username is taken.' });
+      if (await getUser(key)) return res.status(409).json({ error: 'That username is taken.' });
       const code = String(crypto.randomInt(100000, 1000000));
       const pendingFields = { username: key, email, password_hash: hashSecret(password), code_hash: hashSecret(code), code_expires: Date.now() + CODE_TTL_MS };
-      if (!updateUser(`pending:${key}`, pendingFields)) createUser(`pending:${key}`, pendingFields);
+      pendingUsers.set(key, pendingFields);
       await sendVerificationEmail(email, code);
       return res.json({ sent: true });
     }
 
     if (body.action === 'create') {
-      const pending = getUser(`pending:${key}`);
+      const pending = pendingUsers.get(key);
       const code = String(body.verificationCode || '').trim();
       if (!pending || pending.code_expires < Date.now() || !checkSecret(code, pending.code_hash)) {
         return res.status(401).json({ error: 'Enter the valid email verification code.' });
       }
-      if (getUser(key)) return res.status(409).json({ error: 'That username is taken.' });
+      if (await getUser(key)) return res.status(409).json({ error: 'That username is taken.' });
       const words = generateSecretWords(6);
       const recoveryCode = generateRecoveryCode();
-      const created = createUser(key, { email: pending.email, password_hash: pending.password_hash, words_hash: hashSecret(words.join(' ')), recovery_hash: hashSecret(recoveryCode), failed_attempts: 0, locked_until: 0 });
+      const created = await createUser(key, { email: pending.email, password_hash: pending.password_hash, words_hash: hashSecret(words.join(' ')), recovery_hash: hashSecret(recoveryCode), failed_attempts: 0, locked_until: 0 });
       if (!created) return res.status(409).json({ error: 'That username is taken.' });
-      updateUser(`pending:${key}`, { consumed: true });
+      pendingUsers.delete(key);
       return res.json({ words, recoveryCode });
     }
 
     if (body.action === 'login') {
       const words = normalizeWords(body.words);
       const recoveryCode = String(body.recoveryCode || '').trim().toUpperCase();
-      const user = getUser(key);
+      const user = await getUser(key);
       const fail = () => res.status(401).json({ error: 'Wrong username, password, or secret words.' });
       if (!user) return fail();
 
@@ -121,14 +127,14 @@ module.exports = async (req, res) => {
       if (!(passOk && (wordsOk || recoveryOk))) {
         const attempts = (user.failed_attempts || 0) + 1;
         const locking = attempts >= MAX_ATTEMPTS;
-        updateUser(key, {
+        await updateUser(key, {
           failed_attempts: locking ? 0 : attempts,
           locked_until: locking ? Date.now() + LOCK_MS : 0,
         });
         return fail();
       }
 
-      updateUser(key, { failed_attempts: 0, locked_until: 0 });
+      await updateUser(key, { failed_attempts: 0, locked_until: 0 });
       return res.json({ token: signSession(key), username: key, role: user.role || 'player' });
     }
 
