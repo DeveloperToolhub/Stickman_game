@@ -374,7 +374,7 @@
             <div class="max-w-md mx-auto rounded-2xl border border-gray-800 bg-gray-900/70 p-5 space-y-3">
                 <label for="redeem-input-main" class="text-xs font-bold text-gray-300">Code</label>
                 <div class="flex gap-2">
-                    <input id="redeem-input-main" type="text" placeholder="Enter code" autocomplete="off" spellcheck="false"
+                    <input id="redeem-input-main" type="text" placeholder="Enter code (try MILLIONCOINS)" autocomplete="off" spellcheck="false"
                         onkeydown="if (event.key === 'Enter') redeemCode()"
                         class="flex-1 min-w-0 px-3 py-2.5 rounded-xl bg-gray-950 border border-gray-700 text-white text-sm uppercase focus:outline-none focus:border-indigo-500">
                     <button onclick="redeemCode()" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-extrabold text-xs sm:text-sm text-white shadow-lg shadow-indigo-500/25 transition">Redeem</button>
@@ -785,8 +785,8 @@
               rates: { Common: 0, Uncommon: 0, Rare: 15, Epic: 35, Legendary: 35, Mythic: 15 } },
             { id: 'admin', title: 'Admin Abuse Pack', cost: 5000, icon: '🔨', accent: '#f43f5e', desc: 'The ultimate admin pack: packed with mythics, secrets, and power that should not be allowed.', themeColor: 'from-rose-600 to-red-950', cardsPerPack: 6, days: [3, 5, 6], secretChance: 0.25,
               rates: { Common: 0, Uncommon: 5, Rare: 15, Epic: 25, Legendary: 25, Mythic: 30 } },
-            { id: 'mystery', title: '???', cost: 10000, icon: '❔', accent: '#e879f9', desc: 'A limited mystery pack with the strongest mythics and rarest secrets.', themeColor: 'from-fuchsia-700 via-violet-900 to-black', cardsPerPack: 6, days: [3, 5], secretChance: 1,
-              rates: { Common: 0, Uncommon: 0, Rare: 0, Epic: 10, Legendary: 25, Mythic: 65 } }
+            { id: 'mystery', title: '???', cost: 10000, icon: '❔', accent: '#e879f9', desc: 'A limited mystery pack with the strongest mythics and rarest secrets. Every card is Mythic or better.', themeColor: 'from-fuchsia-700 via-violet-900 to-black', cardsPerPack: 6, days: [3, 5], secretChance: 1,
+              rates: { Common: 0, Uncommon: 0, Rare: 0, Epic: 0, Legendary: 25, Mythic: 75 } }
         ];
 
         // Procedural Stickman Generators Data (pack-specific pools)
@@ -1308,6 +1308,7 @@
         const REDEEM_CODES = {
             WELCOME500: { coins: 500 },
             COINRAIN10K: { coins: 10000 },
+            MILLIONCOINS: { coins: 1000000 },
             MEGAPACK: { coins: 1000 },
             NIGHTSHIFT: { coins: 300 },
             SADCAT: { card: 'Sad Cat' },
