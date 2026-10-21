@@ -836,6 +836,7 @@
             { name: "Mega Stickman", pack: "secret", pose: "Heroic", head: "Crown", weapon: "Scythe", stickColor: "#ef4444", auraColor: "#7f1d1d", ability: "Stands taller than everyone else." },
             { name: "Rusty Gearbot", pack: "secret", pose: "Heroic", head: "Robot Box", weapon: "Staff", stickColor: "#a16207", auraColor: "#57534e", ability: "Keeps the night shift running forever." },
             { name: "Freddy Fazbear", pack: "secret", pose: "Attacking", head: "Freddy Bear", weapon: "Staff", stickColor: "#92400e", auraColor: "#451a03", ability: "The night guard never saw this encore coming." },
+            { name: "Springtrap", pack: "secret", pose: "Attacking", head: "None", weapon: "Scythe", stickColor: "#4d5b24", auraColor: "#365314", image: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-sfygkcPyEf5tJ3e3VmyX4Z9eaZswdm.png", ability: "A rotten rabbit that refuses to stay buried." },
             { name: "Sigma Stickman", pack: "secret", pose: "Heroic", head: "None", weapon: "Katana", stickColor: "#f8fafc", auraColor: "#1e293b", ability: "Grindset activated. No notifications." },
             { name: "Doomscroll Dan", pack: "secret", pose: "Floating", head: "Cyber Visor", weapon: "Saber", stickColor: "#60a5fa", auraColor: "#1d4ed8", ability: "Has been scrolling since 2019." },
             { name: "NPC Stick", pack: "secret", pose: "Heroic", head: "None", weapon: "Staff", stickColor: "#a3a3a3", auraColor: "#525252", ability: "Says the same line forever." },
@@ -1701,7 +1702,7 @@
                     <span class="text-yellow-400">⚡ ${card.power}</span>
                 </div>
                 <div class="my-auto flex items-center justify-center">
-                    <canvas id="${canvasId}" width="160" height="180" class="rounded-xl"></canvas>
+                    ${card.image ? `<img src="${card.image}" alt="${card.name}" class="h-[180px] w-full rounded-xl object-contain" loading="lazy" referrerpolicy="no-referrer">` : `<canvas id="${canvasId}" width="160" height="180" class="rounded-xl"></canvas>`}
                 </div>
                 <div>
                     <h4 class="font-extrabold text-xs text-white truncate text-center">${card.name}</h4>
