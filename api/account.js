@@ -5,7 +5,8 @@ const crypto = require('crypto');
 const { generateSecretWords, generateRecoveryCode, normalizeWords, hashSecret, checkSecret, signSession, verifySession } = require('../lib/auth');
 const { getUser, createUser, updateUser } = require('../lib/demo-storage');
 const USERNAME_RE = /^[A-Za-z0-9_]{3,20}$/;
-const EMAIL_RE = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
+// Accept Gmail, iCloud, Yahoo, Outlook, Hotmail, and other standard email providers.
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i;
 const CODE_TTL_MS = 10 * 60 * 1000;
 const RESEND_FROM = `Stickman Game <${process.env.RESEND_EMAIL_DOMAIN ? `no-reply@${process.env.RESEND_EMAIL_DOMAIN}` : 'onboarding@resend.dev'}>`;
 
