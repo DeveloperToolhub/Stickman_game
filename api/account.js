@@ -1,7 +1,7 @@
 // api/account.js: username accounts.
 //   POST /api/account { action: "create", username, password }  -> { words }
 //   POST /api/account { action: "login",  username, password, words } -> { token, username }
-const { generateSecretWords, normalizeWords, hashSecret, checkSecret, signSession } = require('../lib/auth');
+const { generateSecretWords, normalizeWords, hashSecret, checkSecret, signSession, verifySession } = require('../lib/auth');
 const { getUser, createUser, updateUser } = require('../lib/demo-storage');
 const USERNAME_RE = /^[A-Za-z0-9_]{3,20}$/;
 
@@ -21,6 +21,14 @@ const LOCK_MS = 15 * 60 * 1000;
 
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
+  if (req.method === 'GET') {
+    const auth = String(req.headers.authorization || '');
+    const username = auth.startsWith('Bearer ') ? verifySession(auth.slice(7)) : null;
+    const user = username && getUser(username);
+    if (!user || user.role !== 'moderator') return res.status(403).json({ error: 'Moderator access required.' });
+    const { listUsers } = require('../lib/demo-storage');
+    return res.json({ users: listUsers().map(({ username: name, created_at }) => ({ username: name, created_at })) });
+  }
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed.' });
 
   const body = req.body || {};
