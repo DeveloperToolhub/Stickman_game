@@ -41,14 +41,14 @@
     bar.style.cssText = 'position:fixed;top:8px;right:8px;z-index:60;display:flex;gap:8px;align-items:center;font:600 12px Arial,sans-serif;color:#e5e7eb;background:rgba(17,24,39,.9);padding:6px 10px;border-radius:10px;';
     bar.innerHTML =
       '<span id="cloud-status">Not signed in</span>' +
-      '<button id="cloud-admin-btn" style="display:none;background:#7c3aed;color:#fff;border:0;border-radius:6px;padding:5px 9px;cursor:pointer;font:600 12px Arial,sans-serif;">Account directory</button>' +
+      '<button id="cloud-admin-btn" style="display:none;background:#7c3aed;color:#fff;border:0;border-radius:6px;padding:5px 9px;cursor:pointer;font:600 12px Arial,sans-serif;">Admin panel</button>' +
       '<div id="google-signin"></div>' +
       '<button id="cloud-user-btn" style="background:#4f46e5;color:#fff;border:0;border-radius:6px;padding:5px 9px;cursor:pointer;font:600 12px Arial,sans-serif;">Username sign-in</button>' +
       '<button id="cloud-signout" style="display:none;background:#374151;color:#fff;border:0;border-radius:6px;padding:4px 8px;cursor:pointer;font:600 12px Arial,sans-serif;">Sign out</button>';
     document.body.appendChild(bar);
     document.getElementById('cloud-signout').onclick = signOut;
     document.getElementById('cloud-user-btn').onclick = openAccountModal;
-    document.getElementById('cloud-admin-btn').onclick = openAccountDirectory;
+    document.getElementById('cloud-admin-btn').onclick = openAdminPanel;
   }
 
   // ----- username account modal -----
@@ -71,6 +71,85 @@
     }
     modal.style.display = 'flex';
     showSignIn();
+  }
+
+  function escapeAdminText(value) {
+    return String(value).replace(/[&<>\"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  function showAdminMessage(text, tone = '#a5b4fc') {
+    let toast = document.getElementById('admin-live-message');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'admin-live-message';
+      toast.style.cssText = 'position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:90;max-width:min(90vw,620px);padding:14px 20px;border-radius:12px;background:rgba(15,23,42,.96);border:1px solid rgba(165,180,252,.55);box-shadow:0 12px 35px rgba(0,0,0,.4);font:700 15px Arial,sans-serif;text-align:center;';
+      document.body.appendChild(toast);
+    }
+    toast.textContent = text;
+    toast.style.color = tone;
+    toast.style.display = 'block';
+    clearTimeout(toast._hideTimer);
+    toast._hideTimer = setTimeout(() => { toast.style.display = 'none'; }, 8000);
+  }
+
+  function applyAdminTheme(theme) {
+    const themes = {
+      crimson: ['#180b12', '#7f1d1d', '#fecaca'],
+      midnight: ['#020617', '#1e1b4b', '#c7d2fe'],
+      toxic: ['#071a12', '#14532d', '#bbf7d0'],
+      gold: ['#1c1405', '#78350f', '#fef3c7'],
+    };
+    const colors = themes[theme] || themes.midnight;
+    document.body.style.background = `radial-gradient(circle at top, ${colors[1]}, ${colors[0]} 62%)`;
+    document.body.style.color = colors[2];
+    localStorage.setItem('admin-theme', theme);
+    showAdminMessage(`Theme changed to ${theme}.`, colors[2]);
+  }
+
+  function playAdminYouTube() {
+    const input = document.getElementById('admin-video-url');
+    const match = String(input.value).match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+    if (!match) { showAdminMessage('Enter a valid YouTube video URL.', '#fca5a5'); return; }
+    let player = document.getElementById('admin-youtube-player');
+    if (!player) {
+      player = document.createElement('iframe');
+      player.id = 'admin-youtube-player';
+      player.style.cssText = 'position:fixed;right:16px;bottom:16px;width:320px;height:180px;z-index:85;border:1px solid #6366f1;border-radius:12px;background:#000;box-shadow:0 14px 35px rgba(0,0,0,.5);';
+      player.allow = 'autoplay; encrypted-media; picture-in-picture';
+      player.allowFullscreen = true;
+      document.body.appendChild(player);
+    }
+    player.src = `https://www.youtube.com/embed/${match[1]}?autoplay=1`;
+    showAdminMessage('YouTube video started.');
+  }
+
+  function openAdminPanel() {
+    if (currentRole !== 'moderator') return;
+    const modal = document.getElementById('acct-modal');
+    if (!modal) return;
+    modal.style.display = 'flex';
+    document.getElementById('acct-body').innerHTML = `
+      <h3 style="margin:0 0 4px;font-size:20px;color:#fff;">Admin Abuse Control Panel</h3>
+      <p style="margin:0 0 14px;color:#9ca3af;font-size:12px;">Moderator-only communication and presentation controls.</p>
+      <label style="font-size:12px;color:#dbeafe;">On-screen message<textarea id="admin-message" rows="3" placeholder="Message for everyone on this screen..." style="${inputStyle}resize:vertical"></textarea></label>
+      <button id="admin-send-message" style="${btnStyle}">Show message</button>
+      <div style="margin-top:18px;border-top:1px solid #374151;padding-top:14px;">
+        <p style="margin:0 0 8px;font-size:12px;color:#c4b5fd;font-weight:700;">Themes</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">${['crimson','midnight','toxic','gold'].map((theme) => `<button class="admin-theme" data-theme="${theme}" style="padding:8px;border:1px solid #4b5563;border-radius:7px;background:#1f2937;color:#fff;cursor:pointer;">${theme}</button>`).join('')}</div>
+      </div>
+      <div style="margin-top:18px;border-top:1px solid #374151;padding-top:14px;">
+        <p style="margin:0 0 8px;font-size:12px;color:#c4b5fd;font-weight:700;">Music and YouTube video</p>
+        <input id="admin-video-url" style="${inputStyle}" placeholder="Paste a YouTube URL">
+        <button id="admin-play-video" style="${btnStyle}">Play video</button>
+        <button id="admin-stop-video" style="width:100%;margin-top:8px;padding:8px;border:0;border-radius:8px;background:#374151;color:#fff;cursor:pointer;">Stop video</button>
+      </div>`;
+    document.getElementById('admin-send-message').onclick = () => {
+      const message = document.getElementById('admin-message').value.trim();
+      if (message) showAdminMessage(message);
+    };
+    document.querySelectorAll('.admin-theme').forEach((button) => { button.onclick = () => applyAdminTheme(button.dataset.theme); });
+    document.getElementById('admin-play-video').onclick = playAdminYouTube;
+    document.getElementById('admin-stop-video').onclick = () => { const player = document.getElementById('admin-youtube-player'); if (player) player.remove(); showAdminMessage('Video stopped.'); };
   }
 
   async function openAccountDirectory() {
