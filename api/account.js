@@ -46,7 +46,7 @@ module.exports = async (req, res) => {
     const username = auth.startsWith('Bearer ') ? verifySession(auth.slice(7)) : null;
     const user = username && await getUser(username);
     if (!user || user.role !== 'moderator') return res.status(403).json({ error: 'Moderator access required.' });
-    return res.json({ users: (await listUsers()).map(({ username: name, created_at }) => ({ username: name, created_at })) });
+    return res.json({ users: (await listUsers()).map(({ username: name, coins = 0, created_at }) => ({ username: name, coins, created_at })) });
   }
 
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed.' });
