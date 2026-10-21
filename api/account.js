@@ -2,7 +2,7 @@
 //   POST /api/account { action: "create", username, password }  -> { words }
 //   POST /api/account { action: "login",  username, password, words } -> { token, username }
 const { generateSecretWords, generateRecoveryCode, normalizeWords, hashSecret, checkSecret, signSession, verifySession } = require('../lib/auth');
-const { getUser, createUser, updateUser, listUsers, createAdminMessage, listActiveMessages } = require('../lib/neon-storage');
+const { getUser, createUser, updateUser, listUsers, createAdminMessage, listActiveMessages, createAdminMedia, listActiveMedia } = require('../lib/neon-storage');
 
 const USERNAME_RE = /^[A-Za-z0-9_]{3,20}$/;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -40,6 +40,7 @@ module.exports = async (req, res) => {
   await ensureAdmin();
   if (req.method === 'GET') {
     if (String(req.query?.resource || '') === 'messages') return res.json({ messages: await listActiveMessages() });
+    if (String(req.query?.resource || '') === 'media') return res.json({ media: await listActiveMedia() });
     const auth = String(req.headers.authorization || '');
     const username = auth.startsWith('Bearer ') ? verifySession(auth.slice(7)) : null;
     const user = username && await getUser(username);
@@ -63,6 +64,17 @@ module.exports = async (req, res) => {
       const message = String(body.message || '').trim().slice(0, 500);
       if (!message) return res.status(400).json({ error: 'Message cannot be empty.' });
       return res.json({ message: await createAdminMessage(message) });
+    }
+
+    if (body.action === 'broadcast-media') {
+      const auth = String(req.headers.authorization || '');
+      const sessionUser = auth.startsWith('Bearer ') ? verifySession(auth.slice(7)) : null;
+      const sender = sessionUser && await getUser(sessionUser);
+      if (!sender || sender.role !== 'moderator') return res.status(403).json({ error: 'Moderator access required.' });
+      const youtubeId = String(body.youtubeId || '').trim();
+      const action = body.mediaAction === 'stop' ? 'stop' : 'play';
+      if (!/^[A-Za-z0-9_-]{11}$/.test(youtubeId) && action === 'play') return res.status(400).json({ error: 'Invalid YouTube video.' });
+      return res.json({ media: await createAdminMedia(youtubeId || 'stopped', action) });
     }
 
     if (body.action === 'google-login') {
