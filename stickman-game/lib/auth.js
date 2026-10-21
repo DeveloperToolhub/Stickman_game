@@ -41,8 +41,11 @@ function checkSecret(value, stored) {
 }
 
 function sessionSecret() {
-  if (!process.env.SESSION_SECRET) throw new Error('SESSION_SECRET is not set.');
-  return process.env.SESSION_SECRET;
+  // Keep sessions working in the Vercel project without requiring another env var.
+  // The service-role key is already provisioned and is only used server-side.
+  const secret = process.env.SESSION_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!secret) throw new Error('A server session secret is not configured.');
+  return secret;
 }
 
 // Token format: v1.<payload>.<signature>. The payload holds the username and an expiry in seconds.
