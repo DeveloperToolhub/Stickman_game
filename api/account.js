@@ -1,7 +1,7 @@
 // api/account.js: username accounts.
 //   POST /api/account { action: "create", username, password }  -> { words }
 //   POST /api/account { action: "login",  username, password, words } -> { token, username }
-const { generateSecretWords, normalizeWords, hashSecret, checkSecret, signSession, verifySession } = require('../lib/auth');
+const { generateSecretWords, generateRecoveryCode, normalizeWords, hashSecret, checkSecret, signSession, verifySession } = require('../lib/auth');
 const { getUser, createUser, updateUser } = require('../lib/demo-storage');
 const USERNAME_RE = /^[A-Za-z0-9_]{3,20}$/;
 
@@ -49,19 +49,22 @@ module.exports = async (req, res) => {
       }
 
       const words = generateSecretWords(6);
+      const recoveryCode = generateRecoveryCode();
       const created = createUser(key, {
         password_hash: hashSecret(password),
         words_hash: hashSecret(words.join(' ')),
+        recovery_hash: hashSecret(recoveryCode),
         failed_attempts: 0,
         locked_until: 0,
       });
       if (!created) return res.status(409).json({ error: 'That username is taken.' });
       // The words are shown once and never stored in plain text
-      return res.json({ words });
+      return res.json({ words, recoveryCode });
     }
 
     if (body.action === 'login') {
       const words = normalizeWords(body.words);
+      const recoveryCode = String(body.recoveryCode || '').trim().toUpperCase();
       const user = getUser(key);
       const fail = () => res.status(401).json({ error: 'Wrong username, password, or secret words.' });
       if (!user) return fail();
@@ -73,7 +76,8 @@ module.exports = async (req, res) => {
       // Check both secrets every time, so the response timing doesn't reveal which one was wrong
       const passOk = checkSecret(password, user.password_hash);
       const wordsOk = checkSecret(words, user.words_hash);
-      if (!(passOk && wordsOk)) {
+      const recoveryOk = Boolean(user.recovery_hash && checkSecret(recoveryCode, user.recovery_hash));
+      if (!(passOk && (wordsOk || recoveryOk))) {
         const attempts = (user.failed_attempts || 0) + 1;
         const locking = attempts >= MAX_ATTEMPTS;
         updateUser(key, {

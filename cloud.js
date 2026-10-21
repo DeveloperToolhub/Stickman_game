@@ -93,10 +93,11 @@
   function showSignIn(prefill = '') {
     document.getElementById('acct-body').innerHTML = `
       <h3 style="margin:0 0 4px;font-size:18px;color:#fff;">Sign in</h3>
-      <p style="margin:0 0 10px;color:#9ca3af;font-size:12px;">Enter your username, password, and your 6 secret words.</p>
+      <p style="margin:0 0 10px;color:#9ca3af;font-size:12px;">Enter your username and password, then use your 6 secret words or recovery code.</p>
       <label style="font-size:12px;">Username<input id="acct-user" style="${inputStyle}" value="${prefill}" autocomplete="username"></label>
       <label style="font-size:12px;display:block;margin-top:8px;">Password<input id="acct-pass" type="password" style="${inputStyle}" autocomplete="current-password"></label>
       <label style="font-size:12px;display:block;margin-top:8px;">Secret words (6, separated by spaces)<input id="acct-words" style="${inputStyle}" autocomplete="off" spellcheck="false"></label>
+      <label style="font-size:12px;display:block;margin-top:8px;">Lost your words? Recovery code<input id="acct-recovery" style="${inputStyle}" autocomplete="one-time-code" placeholder="XXXX-XXXX-XXXX"></label>
       <p id="acct-msg" style="color:#fca5a5;font-size:12px;min-height:16px;margin:8px 0 0;"></p>
       <button id="acct-signin" style="${btnStyle}">Sign in</button>
       <p style="text-align:center;font-size:12px;margin:12px 0 0;">New here? <a href="#" id="acct-to-create" style="color:#a5b4fc;">Create an account</a></p>`;
@@ -117,12 +118,14 @@
     document.getElementById('acct-to-signin').onclick = (e) => { e.preventDefault(); showSignIn(); };
   }
 
-  function showWords(username, words) {
+  function showWords(username, words, recoveryCode) {
     document.getElementById('acct-body').innerHTML = `
       <h3 style="margin:0 0 4px;font-size:18px;color:#fff;">Your secret words</h3>
-      <p style="margin:0 0 10px;color:#fca5a5;font-size:12px;"><b>Write these down now.</b> They won't be shown again, and there's no way to recover them.</p>
+      <p style="margin:0 0 10px;color:#fca5a5;font-size:12px;"><b>Save both of these now.</b> Your recovery code is the backup 2FA method if you lose your secret words. Neither will be shown again.</p>
       <div style="background:#0b0f19;border:1px dashed #6366f1;border-radius:10px;padding:12px;font:700 16px Consolas,monospace;color:#c7d2fe;text-align:center;letter-spacing:.5px;">${words.join(' ')}</div>
-      <p style="margin:12px 0 0;font-size:12px;color:#9ca3af;">Type them into the sign-in form to finish. This proves you saved them.</p>
+      <p style="margin:12px 0 6px;font-size:12px;color:#fcd34d;font-weight:700;">Backup 2FA recovery code</p>
+      <div style="background:#0b0f19;border:1px dashed #f59e0b;border-radius:10px;padding:12px;font:700 18px Consolas,monospace;color:#fde68a;text-align:center;letter-spacing:1px;">${recoveryCode}</div>
+      <p style="margin:12px 0 0;font-size:12px;color:#9ca3af;">Use the recovery code with your password if you lose your secret words.</p>
       <button id="acct-continue" style="${btnStyle}">I saved them, sign in</button>`;
     document.getElementById('acct-continue').onclick = () => showSignIn(username);
   }
@@ -139,7 +142,7 @@
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { msg.textContent = data.error || 'Could not create the account.'; return; }
-      showWords(document.getElementById('acct-user').value.trim(), data.words);
+      showWords(document.getElementById('acct-user').value.trim(), data.words, data.recoveryCode);
     } catch (e) { msg.textContent = 'Network error. Try again.'; }
   }
 
@@ -152,7 +155,8 @@
         body: JSON.stringify({ action: 'login',
           username: document.getElementById('acct-user').value,
           password: document.getElementById('acct-pass').value,
-          words: document.getElementById('acct-words').value }),
+          words: document.getElementById('acct-words').value,
+          recoveryCode: document.getElementById('acct-recovery').value }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { msg.textContent = data.error || 'Could not sign in.'; return; }
