@@ -393,7 +393,7 @@
     <main id="main-layout" class="max-w-7xl mx-auto w-full px-4 py-6 flex-1 flex flex-col gap-8">
         
         <!-- NAVIGATION TABS -->
-        <nav class="flex items-center justify-center p-1.5 rounded-2xl bg-gray-900/80 border border-gray-800 max-w-2xl mx-auto w-full gap-1">
+        <nav class="flex items-center justify-start sm:justify-center p-1.5 rounded-2xl bg-gray-900/80 border border-gray-800 max-w-2xl mx-auto w-full gap-1 overflow-x-auto snap-x snap-mandatory">
             <button onclick="switchTab('shop')" id="tab-btn-shop" class="nav-tab active flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 bg-indigo-600 text-white shadow-lg">
                 🛒 Shop & Packs
             </button>
@@ -408,10 +408,18 @@
             </button>
             <button onclick="switchTab('codes')" id="tab-btn-codes" class="nav-tab flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 text-gray-400 hover:text-white">
                 🎁 Codes
-            </button>
-        </nav>
+  </button>
+  <button onclick="switchTab('updates')" id="tab-btn-updates" class="nav-tab flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 text-gray-400 hover:text-white">📰 Updates</button>
+  <button onclick="switchTab('chat')" id="tab-btn-chat" class="nav-tab flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 text-gray-400 hover:text-white">💬 Chat</button>
+  </nav>
 
-        <!-- VIEW: CODE REDEEMER -->
+  <!-- VIEW: UPDATES -->
+  <section id="view-updates" class="tab-view hidden space-y-4">
+    <div class="glass-panel p-5 sm:p-8 rounded-3xl border border-indigo-500/20"><p class="text-[10px] font-black uppercase tracking-[0.25em] text-indigo-300">Patch notes</p><h2 class="text-2xl sm:text-4xl font-black text-white mt-1">Updates & new codes</h2><p class="text-xs sm:text-sm text-gray-400 mt-2">Keep up with new secrets, events, and redeemable rewards.</p></div>
+    <div class="grid gap-3 sm:grid-cols-2"><article class="glass-panel rounded-2xl p-4 border border-gray-800"><p class="text-xs text-indigo-300 font-bold">NEW SECRETS</p><h3 class="text-lg text-white font-black mt-1">FNAF collection expanded</h3><p class="text-xs text-gray-400 mt-2">Nightmare Freddy, Golden Freddy, and Foxy are now hiding in secret pulls.</p></article><article class="glass-panel rounded-2xl p-4 border border-gray-800"><p class="text-xs text-emerald-300 font-bold">FEATURE UPDATE</p><h3 class="text-lg text-white font-black mt-1">Shrek entered the swamp</h3><p class="text-xs text-gray-400 mt-2">Find the new Shrek secret and check your Album vault.</p></article><article class="glass-panel rounded-2xl p-4 border border-gray-800"><p class="text-xs text-yellow-300 font-bold">ACTIVE CODE</p><h3 class="text-lg text-white font-black mt-1">SECRET_SWAMP</h3><p class="text-xs text-gray-400 mt-2">Redeem it in Codes for a chance at a swamp-themed reward.</p></article></div>
+  </section>
+
+  <!-- VIEW: CODE REDEEMER -->
         <section id="view-codes" class="tab-view hidden space-y-6">
             <div class="rounded-3xl border border-indigo-500/20 bg-gradient-to-br from-indigo-900/50 via-gray-900 to-purple-900/40 p-6 sm:p-8 text-center space-y-2">
                 <p class="text-[10px] font-black uppercase tracking-[0.25em] text-indigo-300">Rewards</p>
@@ -638,11 +646,12 @@
                     <button onclick="setAlbumFilter('Epic')" class="album-filter text-xs font-bold px-3 py-1.5 rounded-lg bg-gray-800 text-gray-400 hover:text-white">Epic</button>
                     <button onclick="setAlbumFilter('Legendary')" class="album-filter text-xs font-bold px-3 py-1.5 rounded-lg bg-gray-800 text-gray-400 hover:text-white">Legendary</button>
                     <button onclick="setAlbumFilter('Mythic')" class="album-filter text-xs font-bold px-3 py-1.5 rounded-lg bg-gray-800 text-gray-400 hover:text-white">Mythic</button>
+  <button onclick="setAlbumFilter('Secret')" class="album-filter text-xs font-bold px-3 py-1.5 rounded-lg bg-gray-800 text-gray-400 hover:text-white">Secret</button>
                 </div>
             </div>
 
             <!-- CARD COLLECTION GRID -->
-            <div id="album-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            <div id="album-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
                 <!-- Album items rendered dynamically -->
             </div>
         </section>
@@ -890,7 +899,11 @@
             { name: "Sigma Stickman", pack: "secret", pose: "Heroic", head: "None", weapon: "Katana", stickColor: "#f8fafc", auraColor: "#1e293b", ability: "Grindset activated. No notifications." },
             { name: "Doomscroll Dan", pack: "secret", pose: "Floating", head: "Cyber Visor", weapon: "Saber", stickColor: "#60a5fa", auraColor: "#1d4ed8", ability: "Has been scrolling since 2019." },
             { name: "NPC Stick", pack: "secret", pose: "Heroic", head: "None", weapon: "Staff", stickColor: "#a3a3a3", auraColor: "#525252", ability: "Says the same line forever." },
-            { name: "Cringe Wizard", pack: "secret", pose: "Floating", head: "Wizard Hat", weapon: "Staff", stickColor: "#c084fc", auraColor: "#6b21a8", ability: "Casts spells nobody asked for." }
+            { name: "Cringe Wizard", pack: "secret", pose: "Floating", head: "Wizard Hat", weapon: "Staff", stickColor: "#c084fc", auraColor: "#6b21a8", ability: "Casts spells nobody asked for." },
+            { name: "Nightmare Freddy", pack: "secret", pose: "Attacking", head: "Freddy Bear", weapon: "Scythe", stickColor: "#111827", auraColor: "#7f1d1d", ability: "Turns the midnight hour into a boss fight." },
+            { name: "Golden Freddy", pack: "secret", pose: "Floating", head: "Freddy Bear", weapon: "Staff", stickColor: "#facc15", auraColor: "#854d0e", ability: "Appears when the lights go out." },
+            { name: "Foxy", pack: "secret", pose: "Attacking", head: "None", weapon: "Saber", stickColor: "#b91c1c", auraColor: "#450a0a", ability: "Runs from Pirate Cove straight into your album." },
+            { name: "Shrek", pack: "secret", pose: "Heroic", head: "Ogre Ears", weapon: "Staff", stickColor: "#65a30d", auraColor: "#365314", ability: "The swamp has layers, and so does this secret card." }
         ];
 
         /* ==========================================================================
@@ -1362,6 +1375,8 @@
             SADCAT: { card: 'Sad Cat' },
             TUNGTUNG: { card: 'Tung Tung Sahur' },
             SIGMA: { card: 'Sigma Stickman' },
+  SECRET_SWAMP: { card: 'Shrek' },
+  FREDDY_NIGHT: { card: 'Freddy Fazbear' },
             DOOMSCROLL: { card: 'Doomscroll Dan' },
             NPC: { card: 'NPC Stick' },
             CRINGE: { card: 'Cringe Wizard' },
@@ -1504,7 +1519,14 @@
             show(reward.card ? `Unlocked the secret card ${reward.card}!` : `+${reward.coins} coins added!`, '#86efac');
         }
 
-        function switchTab(tabId) {
+        function setupChat() {
+    const form = document.getElementById('chat-form');
+    if (!form || form.dataset.ready) return;
+    form.dataset.ready = 'true';
+    form.addEventListener('submit', (event) => { event.preventDefault(); const input = document.getElementById('chat-input'); const text = input.value.trim(); if (!text) return; const row = document.createElement('p'); row.className = 'text-xs text-gray-200 rounded-xl bg-indigo-950/50 px-3 py-2'; row.textContent = `You: ${text}`; document.getElementById('chat-messages').appendChild(row); input.value = ''; row.scrollIntoView({ block: 'end' }); });
+  }
+
+  function switchTab(tabId) {
             playSound('click');
             document.querySelectorAll('.tab-view').forEach(el => el.classList.add('hidden'));
             document.querySelectorAll('.nav-tab').forEach(el => {
@@ -1517,8 +1539,9 @@
             activeBtn.classList.add('bg-indigo-600', 'text-white', 'shadow-lg');
             activeBtn.classList.remove('text-gray-400');
 
-            if (tabId === 'album') renderAlbum();
-            if (tabId === 'forge') updateForgePreview();
+  if (tabId === 'album') renderAlbum();
+  if (tabId === 'chat') setupChat();
+  if (tabId === 'forge') updateForgePreview();
         }
 
         function togglePhoneMode() {
@@ -2388,7 +2411,7 @@
             const search = document.getElementById('album-search').value.toLowerCase();
 
             let items = gameState.inventory.filter(c => {
-                const matchFilter = activeAlbumFilter === 'All' || c.rarity === activeAlbumFilter;
+                const matchFilter = activeAlbumFilter === 'All' || (activeAlbumFilter === 'Secret' ? c.secret === true : activeAlbumFilter === 'Mythic' ? c.rarity === 'Mythic' && !c.secret : c.rarity === activeAlbumFilter);
                 const matchSearch = c.name.toLowerCase().includes(search);
                 return matchFilter && matchSearch;
             });
