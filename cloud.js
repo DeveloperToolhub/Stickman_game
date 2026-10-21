@@ -43,7 +43,7 @@
   function buildBar() {
     const bar = document.createElement('div');
     bar.id = 'cloud-bar';
-    bar.style.cssText = 'position:fixed;top:12px;right:12px;z-index:60;display:flex;gap:8px;align-items:center;font:600 12px Arial,sans-serif;color:#1c1c1e;background:#fff;border:1px solid #d1d1d6;box-shadow:0 8px 24px rgba(60,60,67,.12);padding:8px 12px;border-radius:12px;';
+    bar.style.cssText = 'position:fixed;top:8px;right:8px;z-index:60;display:flex;gap:8px;align-items:center;font:600 12px Arial,sans-serif;color:#e5e7eb;background:rgba(17,24,39,.9);padding:6px 10px;border-radius:10px;';
     bar.innerHTML =
       '<span id="cloud-status">Not signed in</span>' +
       '<button id="cloud-admin-btn" style="display:none;background:#7c3aed;color:#fff;border:0;border-radius:6px;padding:5px 9px;cursor:pointer;font:600 12px Arial,sans-serif;">Admin panel</button>' +
@@ -57,8 +57,8 @@
   }
 
   // ----- username account modal -----
-  const inputStyle = 'width:100%;box-sizing:border-box;padding:10px 12px;border-radius:10px;border:1px solid #c7c7cc;background:#f2f2f7;color:#1c1c1e;font:14px Arial,sans-serif;margin-top:5px;outline:none;';
-  const btnStyle = 'width:100%;padding:10px;border:0;border-radius:10px;background:#007aff;color:#fff;font:700 14px Arial,sans-serif;cursor:pointer;margin-top:12px;box-shadow:0 4px 12px rgba(0,122,255,.2);';
+  const inputStyle = 'width:100%;box-sizing:border-box;padding:8px;border-radius:6px;border:1px solid #374151;background:#0b0f19;color:#fff;font:14px Arial,sans-serif;margin-top:4px;';
+  const btnStyle = 'width:100%;padding:9px;border:0;border-radius:8px;background:#4f46e5;color:#fff;font:700 14px Arial,sans-serif;cursor:pointer;margin-top:12px;';
 
   function openAccountModal() {
     let modal = document.getElementById('acct-modal');
