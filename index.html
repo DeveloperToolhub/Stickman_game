@@ -358,6 +358,8 @@
         .message-bubble { padding:9px 13px; border-radius:18px; font-size:14px; line-height:1.35; word-break:break-word; box-shadow:0 1px 1px rgba(0,0,0,.06); }
         .incoming .message-bubble { background:#e5e5ea; border-bottom-left-radius:5px; color:#1c1c1e; } .outgoing .message-bubble { background:#007aff; border-bottom-right-radius:5px; color:#fff; }
         .message-row time { color:#8e8e93; font-size:10px; margin:2px 9px 0; }
+        .chat-sender-name { color:#6d6d72; font-size:10px; font-weight:700; margin:0 9px 2px; }
+        .outgoing .chat-sender-name { color:#007aff; }
         .imessage-composer { display:flex; align-items:center; gap:8px; padding:10px 12px calc(10px + env(safe-area-inset-bottom)); background:#fff; border-top:1px solid #d1d1d6; }
         .chat-plus { width:30px; height:30px; border-radius:50%; background:#e5e5ea; color:#6d6d72; font-size:23px; line-height:25px; } .imessage-composer input { flex:1; min-width:0; margin:0; border-radius:18px !important; background:#fff !important; padding:8px 12px !important; }
         .chat-send { width:30px; height:30px; border-radius:50%; background:#007aff; color:#fff; font-size:20px; font-weight:900; line-height:25px; }
@@ -1553,22 +1555,53 @@
     form.dataset.ready = 'true';
     const input = document.getElementById('chat-input');
     const messages = document.getElementById('chat-messages');
-    form.addEventListener('submit', (event) => {
-      event.preventDefault();
-      const text = input.value.trim();
-      if (!text) return;
+    const chatName = localStorage.getItem('STICKMAN_CHAT_NAME') || `Player${Math.floor(Math.random() * 900 + 100)}`;
+    localStorage.setItem('STICKMAN_CHAT_NAME', chatName);
+    let lastChatId = 0;
+    const rendered = new Set();
+    const addMessage = (item) => {
+      if (!item || rendered.has(String(item.id))) return;
+      rendered.add(String(item.id));
       const row = document.createElement('div');
-      row.className = 'message-row outgoing';
+      row.className = `message-row ${item.username === chatName ? 'outgoing' : 'incoming'}`;
+      const name = document.createElement('small');
+      name.className = 'chat-sender-name';
+      name.textContent = item.username === chatName ? 'You' : item.username;
       const bubble = document.createElement('div');
       bubble.className = 'message-bubble';
-      bubble.textContent = text;
+      bubble.textContent = item.message;
       const time = document.createElement('time');
-      time.textContent = 'Now';
-      row.append(bubble, time);
+      time.textContent = new Date(item.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+      row.append(name, bubble, time);
       messages.appendChild(row);
-      input.value = '';
       messages.scrollTop = messages.scrollHeight;
+      lastChatId = Math.max(lastChatId, Number(item.id));
+    };
+    const pollChat = async () => {
+      try {
+        const response = await fetch(`/api/account?resource=chat&after=${lastChatId}`, { cache: 'no-store' });
+        if (!response.ok) return;
+        const data = await response.json();
+        (data.messages || []).forEach(addMessage);
+      } catch (error) { console.log('[v0] group chat polling failed:', error.message); }
+    };
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (event.nativeEvent?.isComposing || event.keyCode === 229) return;
+      const text = input.value.trim();
+      if (!text) return;
+      input.disabled = true;
+      try {
+        const response = await fetch('/api/account', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'chat-message', username: chatName, message: text }) });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || 'Could not send message.');
+        input.value = '';
+        addMessage(data.message);
+      } catch (error) { input.setCustomValidity(error.message); input.reportValidity(); input.setCustomValidity(''); }
+      finally { input.disabled = false; input.focus(); }
     });
+    pollChat();
+    setInterval(pollChat, 2000);
   }
 
   function switchTab(tabId) {
