@@ -3,7 +3,7 @@
 
 (function () {
   // Paste your Google OAuth Web client ID here. It is not secret.
-  const GOOGLE_CLIENT_ID = 'PASTE_YOUR_CLIENT_ID.apps.googleusercontent.com';
+  let GOOGLE_CLIENT_ID = '';
   const TOKEN_KEY = 'stickman_token';
   const PUSH_DELAY_MS = 1500;
 
@@ -273,12 +273,19 @@
   async function init() {
     buildBar();
 
-    if (!GOOGLE_CLIENT_ID.startsWith('PASTE_')) {
+    try {
+      const config = await fetch('/api/config', { cache: 'no-store' }).then((response) => response.ok ? response.json() : {});
+      GOOGLE_CLIENT_ID = String(config.googleClientId || '');
+    } catch (e) {
+      setStatus('Google sign-in unavailable');
+    }
+
+    if (GOOGLE_CLIENT_ID) {
       try {
         await loadGoogleScript();
         google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: onGoogleCredential });
         google.accounts.id.renderButton(document.getElementById('google-signin'),
-          { theme: 'filled_black', size: 'medium', text: 'signin_with' });
+          { theme: 'filled_black', size: 'medium', text: 'continue_with', shape: 'rectangular' });
       } catch (e) { setStatus(e.message); }
     } else {
       console.warn('cloud.js: set GOOGLE_CLIENT_ID to enable Google sign-in.');
