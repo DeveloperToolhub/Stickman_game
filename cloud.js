@@ -12,6 +12,9 @@
   let pushTimer = null;
   let messageTimer = null;
   let lastMessageId = 0;
+  let mediaTimer = null;
+  let lastMediaId = 0;
+  let remotePlayer = null;
   let pendingPush = false;
 
   // ----- token helpers (Google tokens and username tokens both carry a JSON payload) -----
@@ -108,6 +111,24 @@
     showAdminMessage(`Theme changed to ${theme}.`, colors[2]);
   }
 
+  function showRemoteVideo(youtubeId) {
+    if (!remotePlayer) {
+      remotePlayer = document.createElement('iframe');
+      remotePlayer.id = 'remote-youtube-player';
+      remotePlayer.title = 'Admin shared YouTube video';
+      remotePlayer.allow = 'autoplay; encrypted-media; picture-in-picture';
+      remotePlayer.allowFullscreen = true;
+      remotePlayer.style.cssText = 'position:fixed;right:16px;bottom:16px;width:min(360px,calc(100vw - 32px));height:203px;z-index:85;border:1px solid #f59e0b;border-radius:12px;background:#000;box-shadow:0 14px 35px rgba(0,0,0,.55);';
+      document.body.appendChild(remotePlayer);
+    }
+    remotePlayer.src = `https://www.youtube.com/embed/${youtubeId}?autoplay=1&playsinline=1`;
+    showAdminMessage('Admin is playing a video for everyone.', '#fde68a');
+  }
+
+  function stopRemoteVideo() {
+    if (remotePlayer) { remotePlayer.remove(); remotePlayer = null; }
+  }
+
   function playAdminYouTube() {
     const input = document.getElementById('admin-video-url');
     const match = String(input.value).match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
@@ -140,8 +161,8 @@
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">${['crimson','midnight','toxic','gold'].map((theme) => `<button class="admin-theme" data-theme="${theme}" style="padding:8px;border:1px solid #4b5563;border-radius:7px;background:#1f2937;color:#fff;cursor:pointer;">${theme}</button>`).join('')}</div>
       </div>
       <div style="margin-top:18px;border-top:1px solid #374151;padding-top:14px;">
-        <p style="margin:0 0 8px;font-size:12px;color:#c4b5fd;font-weight:700;">Music and YouTube video</p>
-        <input id="admin-video-url" style="${inputStyle}" placeholder="Paste a YouTube URL">
+        <p style="margin:0 0 8px;font-size:12px;color:#c4b5fd;font-weight:700;">Shared YouTube video and audio</p>
+        <input id="admin-video-url" style="${inputStyle}" placeholder="Paste a YouTube URL (audio follows video)">
         <button id="admin-play-video" style="${btnStyle}">Play video</button>
         <button id="admin-stop-video" style="width:100%;margin-top:8px;padding:8px;border:0;border-radius:8px;background:#374151;color:#fff;cursor:pointer;">Stop video</button>
       </div>`;
@@ -154,8 +175,13 @@
       }
     };
     document.querySelectorAll('.admin-theme').forEach((button) => { button.onclick = () => applyAdminTheme(button.dataset.theme); });
-    document.getElementById('admin-play-video').onclick = playAdminYouTube;
-    document.getElementById('admin-stop-video').onclick = () => { const player = document.getElementById('admin-youtube-player'); if (player) player.remove(); showAdminMessage('Video stopped.'); };
+    document.getElementById('admin-play-video').onclick = () => {
+      const input = document.getElementById('admin-video-url');
+      const match = String(input.value).match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+      if (!match) { showAdminMessage('Enter a valid YouTube video URL.', '#fca5a5'); return; }
+      fetch('/api/account', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + idToken }, body: JSON.stringify({ action: 'broadcast-media', youtubeId: match[1], mediaAction: 'play' }) }).then(async (response) => { const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || 'Could not start shared video.'); playAdminYouTube(); showAdminMessage('Video and audio sent to active players.', '#86efac'); }).catch((error) => showAdminMessage(error.message, '#fca5a5'));
+    };
+    document.getElementById('admin-stop-video').onclick = () => { const player = document.getElementById('admin-youtube-player'); if (player) player.remove(); fetch('/api/account', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + idToken }, body: JSON.stringify({ action: 'broadcast-media', youtubeId: 'stopped', mediaAction: 'stop' }) }); showAdminMessage('Video stopped for active players.'); };
   }
 
   async function openAccountDirectory() {
@@ -328,6 +354,18 @@
   });
 
   // ----- sign-in state -----
+  async function pollBroadcastMedia() {
+    try {
+      const response = await fetch('/api/account?resource=media', { cache: 'no-store' });
+      if (!response.ok) return;
+      const data = await response.json();
+      const newest = (data.media || []).sort((a, b) => Number(a.id) - Number(b.id)).find((item) => Number(item.id) > lastMediaId);
+      if (!newest) return;
+      lastMediaId = Number(newest.id);
+      if (newest.action === 'stop') stopRemoteVideo(); else showRemoteVideo(newest.youtube_id);
+    } catch (error) { console.log('[v0] media polling failed:', error.message); }
+  }
+
   async function pollBroadcastMessages() {
     try {
       const response = await fetch('/api/account?resource=messages', { cache: 'no-store' });
@@ -351,7 +389,8 @@
     clearInterval(messageTimer);
     lastMessageId = 0;
     pollBroadcastMessages();
-    messageTimer = setInterval(pollBroadcastMessages, 3000);
+    messageTimer = setInterval(() => { pollBroadcastMessages(); pollBroadcastMedia(); }, 3000);
+    pollBroadcastMedia();
     setStatus('Signed in as ' + displayName(token));
     try { await pullSave(); }
     catch (e) { setStatus(e.message); }
