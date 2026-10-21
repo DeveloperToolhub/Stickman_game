@@ -227,36 +227,33 @@
             box-shadow: 0 10px 24px -14px rgba(0,0,0,.8);
         }
 
-        /* ===== Liquid glass ===== */
+        /* ===== iOS 18-inspired interface ===== */
         body {
-            background:
-                radial-gradient(900px 620px at 12% -8%, rgba(129,140,248,.38), transparent 60%),
-                radial-gradient(820px 600px at 96% 18%, rgba(232,121,249,.26), transparent 60%),
-                radial-gradient(760px 520px at 42% 112%, rgba(45,212,191,.24), transparent 60%),
-                #0a0d1a !important;
+            background: #f2f2f7 !important;
+            color: #1c1c1e;
             background-attachment: fixed !important;
         }
         .glass-panel, nav, #cloud-bar, #settings-btn {
-            background: linear-gradient(135deg, rgba(255,255,255,.20) 0%, rgba(255,255,255,.05) 42%, rgba(255,255,255,.12) 100%) !important;
-            -webkit-backdrop-filter: blur(24px) saturate(180%) brightness(1.06);
-            backdrop-filter: blur(24px) saturate(180%) brightness(1.06);
-            border: 1px solid rgba(255,255,255,.26) !important;
-            box-shadow:
-                inset 0 1px 1px rgba(255,255,255,.42),
-                inset 0 -12px 28px rgba(255,255,255,.035),
-                0 26px 60px -26px rgba(0,0,0,.7) !important;
+            background: #ffffff !important;
+            border: 1px solid #d1d1d6 !important;
+            box-shadow: 0 8px 24px rgba(60,60,67,.12) !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
         }
-        .glass-panel { border-radius: 22px !important; }
-        nav { border-radius: 22px !important; }
-        .pack-card:hover { border-color: rgba(255,255,255,.4) !important; }
-        #cloud-bar, #settings-btn { border-radius: 14px !important; }
-        #cloud-bar button, #settings-btn { border-color: rgba(255,255,255,.2) !important; }
-
-        /* Buttons get a light glossy top edge */
-        button.bg-indigo-600, .bg-indigo-600 {
-            box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 12px 28px -12px rgba(129,140,248,.8) !important;
-        }
-        .nav-tab.active, nav .bg-indigo-600 { border: 1px solid rgba(255,255,255,.25); }
+        .glass-panel { border-radius: 18px !important; }
+        nav { border-radius: 14px !important; }
+        .pack-card:hover { border-color: #007aff !important; box-shadow: 0 10px 28px rgba(0,122,255,.18) !important; }
+        #cloud-bar, #settings-btn { border-radius: 12px !important; }
+        #cloud-bar button, #settings-btn { border-color: #d1d1d6 !important; }
+        input, select, textarea { background: #f2f2f7 !important; border-color: #c7c7cc !important; color: #1c1c1e !important; }
+        input:focus, select:focus, textarea:focus { border-color: #007aff !important; box-shadow: 0 0 0 3px rgba(0,122,255,.2) !important; }
+        button.bg-indigo-600, .bg-indigo-600 { background: #007aff !important; box-shadow: 0 4px 12px rgba(0,122,255,.25) !important; }
+        button:hover:not(:disabled) { filter: brightness(.97); }
+        .nav-tab.active, nav .bg-indigo-600 { border: 1px solid #007aff; }
+        .text-gray-100, .text-gray-200, .text-gray-300, .text-white { color: #1c1c1e !important; }
+        .text-gray-400, .text-gray-500, .text-gray-600 { color: #6d6d72 !important; }
+        .bg-gray-800, .bg-gray-900, .bg-slate-800, .bg-slate-900 { background-color: #e5e5ea !important; }
+        .border-gray-800, .border-gray-700 { border-color: #d1d1d6 !important; }
 
         /* ===== Low performance mode (Settings) ===== */
         html.low-perf body::before,
