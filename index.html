@@ -161,10 +161,28 @@
             backdrop-filter: blur(12px);
         }
         .glass-panel {
-            background: var(--panel) !important;
-            border-color: var(--line) !important;
-            box-shadow: 0 18px 40px -22px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.04);
-            border-radius: 18px;
+            background: linear-gradient(135deg, rgba(255,255,255,.13), rgba(255,255,255,.035)) !important;
+            border: 1px solid rgba(255,255,255,.2) !important;
+            box-shadow: 0 18px 50px -24px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.18), inset 0 -1px 0 rgba(255,255,255,.04);
+            border-radius: 22px;
+            backdrop-filter: blur(24px) saturate(145%);
+            -webkit-backdrop-filter: blur(24px) saturate(145%);
+        }
+        .glass-panel::before {
+            content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
+            background: linear-gradient(120deg, rgba(255,255,255,.1), transparent 32%, transparent 68%, rgba(167,139,250,.06));
+        }
+        nav, .pack-card, #cloud-bar, #settings-btn {
+            background: linear-gradient(135deg, rgba(255,255,255,.11), rgba(255,255,255,.035)) !important;
+            border-color: rgba(255,255,255,.18) !important;
+            box-shadow: 0 14px 38px -22px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.15);
+            backdrop-filter: blur(22px) saturate(140%);
+            -webkit-backdrop-filter: blur(22px) saturate(140%);
+        }
+        input, select, textarea {
+            background: rgba(255,255,255,.07) !important;
+            border-color: rgba(255,255,255,.16) !important;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
         }
         nav {
             background: rgba(15, 23, 42, .65) !important;
@@ -817,6 +835,7 @@
             { name: "Glitch Ghost", pack: "secret", pose: "Floating", head: "None", weapon: "Saber", stickColor: "#e5e7eb", auraColor: "#22d3ee", ability: "404: ability not found." },
             { name: "Mega Stickman", pack: "secret", pose: "Heroic", head: "Crown", weapon: "Scythe", stickColor: "#ef4444", auraColor: "#7f1d1d", ability: "Stands taller than everyone else." },
             { name: "Rusty Gearbot", pack: "secret", pose: "Heroic", head: "Robot Box", weapon: "Staff", stickColor: "#a16207", auraColor: "#57534e", ability: "Keeps the night shift running forever." },
+            { name: "Freddy Fazbear", pack: "secret", pose: "Attacking", head: "Freddy Bear", weapon: "Staff", stickColor: "#92400e", auraColor: "#451a03", ability: "The night guard never saw this encore coming." },
             { name: "Sigma Stickman", pack: "secret", pose: "Heroic", head: "None", weapon: "Katana", stickColor: "#f8fafc", auraColor: "#1e293b", ability: "Grindset activated. No notifications." },
             { name: "Doomscroll Dan", pack: "secret", pose: "Floating", head: "Cyber Visor", weapon: "Saber", stickColor: "#60a5fa", auraColor: "#1d4ed8", ability: "Has been scrolling since 2019." },
             { name: "NPC Stick", pack: "secret", pose: "Heroic", head: "None", weapon: "Staff", stickColor: "#a3a3a3", auraColor: "#525252", ability: "Says the same line forever." },
@@ -1142,6 +1161,19 @@
                 ctx.fill();
                 ctx.fillStyle = '#a16207';
                 ctx.fillRect(headX - 8, headY - 15, 16, 2);
+            } else if (cardData.head === 'Freddy Bear') {
+                // Brown bear ears, muzzle, hat and a bowtie-inspired silhouette
+                ctx.fillStyle = cardData.stickColor || '#92400e';
+                ctx.beginPath(); ctx.arc(headX - 10, headY - 11, 6, 0, Math.PI * 2); ctx.arc(headX + 10, headY - 11, 6, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(headX, headY, 14, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#d6a56a';
+                ctx.beginPath(); ctx.ellipse(headX, headY + 7, 8, 6, 0, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#fef3c7';
+                ctx.beginPath(); ctx.arc(headX - 5, headY - 3, 3, 0, Math.PI * 2); ctx.arc(headX + 5, headY - 3, 3, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#111827';
+                ctx.beginPath(); ctx.arc(headX - 5, headY - 3, 1.5, 0, Math.PI * 2); ctx.arc(headX + 5, headY - 3, 1.5, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#171717'; ctx.beginPath(); ctx.arc(headX, headY + 5, 3, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#171717'; ctx.fillRect(headX - 8, headY - 19, 16, 4); ctx.fillRect(headX - 5, headY - 24, 10, 6);
             } else if (cardData.head === 'Cat Sad') {
                 // Pointy cat ears, whiskers, a frown and a tear
                 ctx.fillStyle = cardData.stickColor || '#9ca3af';
