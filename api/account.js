@@ -4,6 +4,18 @@
 const { generateSecretWords, normalizeWords, hashSecret, checkSecret, signSession } = require('../lib/auth');
 const { getUser, createUser, updateUser } = require('../lib/demo-storage');
 const USERNAME_RE = /^[A-Za-z0-9_]{3,20}$/;
+
+// Demo-only moderator credentials for previews without a database.
+const DEMO_ADMIN_USERNAME = 'admin';
+const DEMO_ADMIN_PASSWORD = 'admin12345';
+const DEMO_ADMIN_WORDS = 'admin mod stickman secure account access';
+createUser(DEMO_ADMIN_USERNAME, {
+  password_hash: hashSecret(DEMO_ADMIN_PASSWORD),
+  words_hash: hashSecret(DEMO_ADMIN_WORDS),
+  failed_attempts: 0,
+  locked_until: 0,
+  role: 'moderator',
+});
 const MAX_ATTEMPTS = 5;
 const LOCK_MS = 15 * 60 * 1000;
 
@@ -64,7 +76,7 @@ module.exports = async (req, res) => {
       }
 
       updateUser(key, { failed_attempts: 0, locked_until: 0 });
-      return res.json({ token: signSession(key), username: key });
+      return res.json({ token: signSession(key), username: key, role: user.role || 'player' });
     }
 
     return res.status(400).json({ error: 'Unknown action.' });
