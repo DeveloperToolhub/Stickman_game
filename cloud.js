@@ -53,7 +53,7 @@
     document.body.appendChild(bar);
     document.getElementById('cloud-signout').onclick = signOut;
     document.getElementById('cloud-user-btn').onclick = openAccountModal;
-    document.getElementById('cloud-admin-btn').onclick = openAdminPanel;
+    document.getElementById('cloud-admin-btn').onclick = openAdminPanelPro;
   }
 
   // ----- username account modal -----
@@ -95,6 +95,23 @@
     toast.style.display = 'block';
     clearTimeout(toast._hideTimer);
     toast._hideTimer = setTimeout(() => { toast.style.display = 'none'; }, 8000);
+  }
+
+  function applyWorldBackground(background) {
+    document.body.dataset.background = background;
+    const existing = document.getElementById('live-world-background');
+    if (existing) existing.remove();
+    const layer = document.createElement('div');
+    layer.id = 'live-world-background';
+    layer.setAttribute('aria-hidden', 'true');
+    layer.style.cssText = 'position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.6;mix-blend-mode:screen;background-size:cover;';
+    const styles = { aurora:'radial-gradient(circle at 20% 20%,#22d3ee33,transparent 35%),radial-gradient(circle at 80% 30%,#a855f733,transparent 35%),#020617', 'neon-rain':'repeating-linear-gradient(115deg,#22d3ee22 0 2px,transparent 2px 28px),#020617', volcano:'radial-gradient(circle at 50% 110%,#ef4444aa,transparent 45%),#170808', 'cyber-grid':'linear-gradient(#22d3ee22 1px,transparent 1px),linear-gradient(90deg,#22d3ee22 1px,transparent 1px),#050816', matrix:'repeating-linear-gradient(90deg,#22c55e18 0 1px,transparent 1px 24px),#020b07' };
+    layer.style.background = styles[background] || styles.aurora;
+    document.body.appendChild(layer);
+  }
+
+  async function pollWorldBackground() {
+    try { const response = await fetch('/api/account?resource=world', { cache:'no-store' }); if (!response.ok) return; const data = await response.json(); if (data.world?.background) applyWorldBackground(data.world.background); } catch (error) { console.log('[v0] background polling failed:', error.message); }
   }
 
   function applyAdminTheme(theme) {
@@ -144,6 +161,60 @@
     }
     player.src = `https://www.youtube.com/embed/${match[1]}?autoplay=1`;
     showAdminMessage('YouTube video started.');
+  }
+
+  function openAdminPanelPro() {
+    if (currentRole !== 'moderator') return;
+    const modal = document.getElementById('acct-modal');
+    if (!modal) return;
+    modal.style.display = 'flex';
+    const body = document.getElementById('acct-body');
+    body.innerHTML = `
+      <div style="max-width:860px;width:min(100%,860px);margin:-8px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px;">
+          <div><div style="font-size:11px;letter-spacing:2px;color:#818cf8;font-weight:800;">STICKMAN CONTROL CENTER</div><h2 style="margin:4px 0 0;color:#fff;font-size:26px;">Moderator command deck</h2></div>
+          <div style="text-align:right"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#34d399;box-shadow:0 0 12px #34d399;margin-right:6px;"></span><span style="color:#86efac;font-size:12px;font-weight:700;">LIVE</span><div style="color:#64748b;font-size:11px;margin-top:4px;">Admin access</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;">
+          ${[['Players online','Live presence','36','emerald'],['Messages','Broadcast ready','12','indigo'],['Media channel','Audio + video','ON','amber'],['Server health','All systems','99.9%','sky']].map(([label,sub,value,color]) => `<div style="background:linear-gradient(145deg,#172033,#0f172a);border:1px solid #263449;border-radius:12px;padding:12px;"><div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#94a3b8;">${label}</div><div style="font-size:22px;font-weight:800;color:#${color === 'emerald' ? '6ee7b7' : color === 'amber' ? 'fcd34d' : color === 'sky' ? '7dd3fc' : 'a5b4fc'};margin-top:5px;">${value}</div><div style="font-size:10px;color:#64748b;margin-top:2px;">${sub}</div></div>`).join('')}
+        </div>
+        <nav id="admin-tabs" style="display:flex;gap:6px;overflow:auto;padding-bottom:10px;border-bottom:1px solid #263449;">
+          ${['Command','Players','Broadcasts','World','Tools'].map((tab,index) => `<button class="admin-tab" data-tab="${tab.toLowerCase()}" style="white-space:nowrap;border:1px solid ${index === 0 ? '#6366f1' : '#263449'};background:${index === 0 ? '#312e81' : '#111827'};color:#e0e7ff;border-radius:8px;padding:8px 12px;font:700 12px Arial;cursor:pointer;">${tab}</button>`).join('')}
+        </nav>
+        <div id="admin-tab-content" style="padding-top:14px;"></div>
+      </div>`;
+    const content = document.getElementById('admin-tab-content');
+    const field = (id, label, placeholder, type = 'text') => `<label style="display:block;color:#cbd5e1;font-size:12px;font-weight:700;">${label}<input id="${id}" type="${type}" placeholder="${placeholder}" style="${inputStyle}"></label>`;
+    const button = (id, text, tone = '#4f46e5') => `<button id="${id}" style="border:0;border-radius:8px;padding:9px 12px;background:${tone};color:#fff;font:700 12px Arial;cursor:pointer;">${text}</button>`;
+    const render = (tab) => {
+      if (tab === 'command') content.innerHTML = `<div style="display:grid;grid-template-columns:1.4fr 1fr;gap:12px;"><section style="background:#111827;border:1px solid #263449;border-radius:12px;padding:14px;"><div style="color:#a5b4fc;font-size:12px;font-weight:800;margin-bottom:10px;">GLOBAL ANNOUNCEMENT</div>${field('pro-message','Message','Everyone will see this...')}<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">${button('pro-send','Broadcast message')} ${button('pro-clear','Clear live banners','#374151')}</div><p id="pro-status" style="font-size:12px;color:#64748b;min-height:16px;margin:10px 0 0;"></p></section><section style="background:#111827;border:1px solid #263449;border-radius:12px;padding:14px;"><div style="color:#a5b4fc;font-size:12px;font-weight:800;margin-bottom:10px;">QUICK ACTIONS</div><div style="display:grid;gap:8px;">${button('pro-welcome','Send welcome banner','#059669')}${button('pro-alert','Send alert banner','#b45309')}${button('pro-reset-theme','Reset world theme','#334155')}</div></section></div>`;
+      if (tab === 'players') content.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"><section style="background:#111827;border:1px solid #263449;border-radius:12px;padding:14px;"><div style="color:#fcd34d;font-size:12px;font-weight:800;margin-bottom:10px;">REWARD CENTER</div>${field('pro-target','Player username','yuh')}${field('pro-coins','Coin amount','100','number')}<button id="pro-grant-coins" style="${button('unused','Grant coins','#d97706').replace('id=\"unused\"','')}">Grant coins</button><select id="pro-secret" style="${inputStyle};margin-top:8px"><option value="double-jump">Double jump</option><option value="coin-magnet">Coin magnet</option><option value="shadow-mode">Shadow mode</option><option value="rainbow-trail">Rainbow trail</option><option value="speed-burst">Speed burst</option></select><button id="pro-grant-secret" style="${button('unused2','Grant selected secret','#7c3aed').replace('id=\"unused2\"','')}">Grant secret</button><p id="pro-reward-status" style="color:#64748b;font-size:12px;min-height:16px;"></p></section><section style="background:#111827;border:1px solid #263449;border-radius:12px;padding:14px;"><div style="color:#a5b4fc;font-size:12px;font-weight:800;margin-bottom:10px;">PLAYER DIRECTORY</div><button id="pro-refresh-users" style="border:0;border-radius:8px;padding:9px 12px;background:#334155;color:#fff;font:700 12px Arial;cursor:pointer;">Refresh list</button><div id="pro-users" style="color:#94a3b8;font-size:12px;margin-top:10px;">Loading player directory...</div></section></div>`;
+      if (tab === 'broadcasts') content.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"><section style="background:#111827;border:1px solid #263449;border-radius:12px;padding:14px;"><div style="color:#fcd34d;font-size:12px;font-weight:800;margin-bottom:10px;">SHARED MEDIA</div>${field('pro-youtube','YouTube URL','https://youtu.be/...')}${button('pro-play','Play for active players','#b45309')}<button id="pro-stop" style="display:block;margin-top:8px;width:100%;border:0;border-radius:8px;padding:9px;background:#374151;color:#fff;font:700 12px Arial;cursor:pointer;">Stop shared media</button><p style="font-size:11px;color:#64748b;line-height:1.4;">Video and audio follow the browser autoplay policy. Players may need one click first.</p></section><section style="background:#111827;border:1px solid #263449;border-radius:12px;padding:14px;"><div style="color:#c4b5fd;font-size:12px;font-weight:800;margin-bottom:10px;">THEME STUDIO</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">${['crimson','midnight','toxic','gold'].map((theme) => `<button class="pro-theme" data-theme="${theme}" style="padding:10px;border:1px solid #374151;border-radius:8px;background:#1f2937;color:#fff;cursor:pointer;font-weight:700;">${theme}</button>`).join('')}</div></section></div>`;
+      if (tab === 'world') content.innerHTML = `<div style="display:grid;gap:12px;"><section style="background:#111827;border:1px solid #263449;border-radius:12px;padding:14px;"><div style="color:#67e8f9;font-size:12px;font-weight:800;margin-bottom:10px;">LIVE BACKGROUND STUDIO</div><p style="color:#64748b;font-size:11px;margin:0 0 10px;">Choose an animated background for every active player.</p><div style="display:grid;grid-template-columns:repeat(5,1fr);gap:7px;">${['aurora','neon-rain','volcano','cyber-grid','matrix'].map((bg) => `<button class="pro-background" data-background="${bg}" style="padding:10px 6px;border:1px solid #374151;border-radius:8px;background:#1f2937;color:#fff;cursor:pointer;font-size:11px;font-weight:700;">${bg}</button>`).join('')}</div><p id="pro-world-status" style="font-size:12px;color:#64748b;margin:12px 0 0;">No background selected.</p></section><section style="background:#111827;border:1px solid #263449;border-radius:12px;padding:14px;"><div style="color:#a5b4fc;font-size:12px;font-weight:800;margin-bottom:12px;">WORLD EVENTS</div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">${button('pro-event-rain','Start rain event','#2563eb')}${button('pro-event-gold','Start gold rush','#b45309')}${button('pro-event-speed','Double speed','#7c3aed')}${button('pro-event-calm','Return to normal','#334155')}</div></section></div>`;
+      if (tab === 'tools') content.innerHTML = `<section style="background:#111827;border:1px solid #263449;border-radius:12px;padding:14px;"><div style="color:#a5b4fc;font-size:12px;font-weight:800;margin-bottom:12px;">ADMIN UTILITIES</div><div style="display:grid;gap:10px;">${button('pro-open-directory','Open account directory','#334155')}${button('pro-download-log','Copy session diagnostics','#334155')}${button('pro-close-panel','Close control center','#374151')}</div><p style="font-size:11px;color:#64748b;line-height:1.5;">All server actions remain moderator-protected. Never share your admin session token.</p></section>`;
+      wireTab(tab);
+    };
+    const status = (text, tone = '#86efac') => { const el = document.getElementById('pro-status') || document.getElementById('pro-world-status'); if (el) { el.textContent = text; el.style.color = tone; } };
+    const send = (message) => fetch('/api/account', { method:'POST', headers:{'Content-Type':'application/json', Authorization:'Bearer ' + idToken}, body:JSON.stringify({action:'broadcast-message', message}) }).then(async (r) => { const data = await r.json().catch(() => ({})); if (!r.ok) throw new Error(data.error || 'Action failed.'); status('Delivered to active players.'); showAdminMessage('Admin broadcast delivered.', '#86efac'); });
+    const wireTab = (tab) => {
+      const sendButton = document.getElementById('pro-send'); if (sendButton) sendButton.onclick = () => { const message = document.getElementById('pro-message').value.trim(); if (message) send(message).catch((e) => status(e.message, '#fca5a5')); };
+      ['welcome','alert'].forEach((kind) => { const el = document.getElementById('pro-' + kind); if (el) el.onclick = () => send(kind === 'welcome' ? 'Welcome to the Stickman arena.' : 'Moderator alert: please follow the server rules.').catch((e) => status(e.message, '#fca5a5')); });
+      const clear = document.getElementById('pro-clear'); if (clear) clear.onclick = () => showAdminMessage('Live banners cleared.');
+      document.querySelectorAll('.pro-theme').forEach((el) => { el.onclick = () => applyAdminTheme(el.dataset.theme); });
+      const play = document.getElementById('pro-play'); if (play) play.onclick = () => { const match = String(document.getElementById('pro-youtube').value).match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/); if (!match) return showAdminMessage('Enter a valid YouTube URL.', '#fca5a5'); fetch('/api/account',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+idToken},body:JSON.stringify({action:'broadcast-media',youtubeId:match[1],mediaAction:'play'})}).then(() => { showAdminMessage('Shared video and audio started.', '#86efac'); }).catch(() => showAdminMessage('Could not start media.', '#fca5a5')); };
+      const stop = document.getElementById('pro-stop'); if (stop) stop.onclick = () => fetch('/api/account',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+idToken},body:JSON.stringify({action:'broadcast-media',youtubeId:'stopped',mediaAction:'stop'})}).then(() => showAdminMessage('Shared media stopped.'));
+      ['rain','gold','speed','calm'].forEach((event) => { const el = document.getElementById('pro-event-' + event); if (el) el.onclick = () => { document.body.dataset.worldEvent = event; const target = document.getElementById('pro-world-status'); if (target) target.textContent = event + ' event activated.'; showAdminMessage(event + ' event activated.'); }; });
+      const rewardStatus = (text, tone = '#86efac') => { const el = document.getElementById('pro-reward-status'); if (el) { el.textContent = text; el.style.color = tone; } };
+      const grant = (action, payload) => fetch('/api/account', { method:'POST', headers:{'Content-Type':'application/json',Authorization:'Bearer '+idToken}, body:JSON.stringify({ action, ...payload }) }).then(async (r) => { const data = await r.json().catch(() => ({})); if (!r.ok) throw new Error(data.error || 'Reward action failed.'); rewardStatus(action === 'grant-coins' ? `Balance updated: ${data.player.coins} coins.` : (data.granted ? 'Secret granted.' : 'Player already has that secret.')); });
+      const grantCoinsButton = document.getElementById('pro-grant-coins'); if (grantCoinsButton) grantCoinsButton.onclick = () => grant('grant-coins', { targetUsername: document.getElementById('pro-target').value, amount: document.getElementById('pro-coins').value }).catch((e) => rewardStatus(e.message, '#fca5a5'));
+      const grantSecretButton = document.getElementById('pro-grant-secret'); if (grantSecretButton) grantSecretButton.onclick = () => grant('grant-secret', { targetUsername: document.getElementById('pro-target').value, secretKey: document.getElementById('pro-secret').value }).catch((e) => rewardStatus(e.message, '#fca5a5'));
+      document.querySelectorAll('.pro-background').forEach((el) => { el.onclick = () => fetch('/api/account', { method:'POST', headers:{'Content-Type':'application/json',Authorization:'Bearer '+idToken}, body:JSON.stringify({ action:'set-background', background:el.dataset.background }) }).then(() => { applyWorldBackground(el.dataset.background); const target = document.getElementById('pro-world-status'); if (target) target.textContent = `${el.dataset.background} is now live for players.`; }).catch(() => showAdminMessage('Could not change background.', '#fca5a5')); });
+      const close = document.getElementById('pro-close-panel'); if (close) close.onclick = () => { document.getElementById('acct-modal').style.display = 'none'; };
+      const directory = document.getElementById('pro-open-directory'); if (directory) directory.onclick = openAccountDirectory;
+      const refresh = document.getElementById('pro-refresh-users'); if (refresh) refresh.onclick = async () => { const el = document.getElementById('pro-users'); try { const r = await fetch('/api/account',{headers:{Authorization:'Bearer '+idToken}}); const data = await r.json(); el.innerHTML = (data.users || []).map((u) => `<div style="display:flex;justify-content:space-between;border-top:1px solid #263449;padding:9px 0;"><span style="color:#fff;font-weight:700;">${escapeAdminText(u.username)}</span><span style="color:#64748b;">${new Date(u.created_at).toLocaleDateString()}</span></div>`).join('') || 'No players found.'; } catch (e) { el.textContent = e.message; } };
+    };
+    document.querySelectorAll('.admin-tab').forEach((tab) => { tab.onclick = () => { document.querySelectorAll('.admin-tab').forEach((item) => { item.style.background = '#111827'; item.style.borderColor = '#263449'; }); tab.style.background = '#312e81'; tab.style.borderColor = '#6366f1'; render(tab.dataset.tab); }; });
+    render('command');
   }
 
   function openAdminPanel() {
@@ -389,8 +460,9 @@
     clearInterval(messageTimer);
     lastMessageId = 0;
     pollBroadcastMessages();
-    messageTimer = setInterval(() => { pollBroadcastMessages(); pollBroadcastMedia(); }, 3000);
+    messageTimer = setInterval(() => { pollBroadcastMessages(); pollBroadcastMedia(); pollWorldBackground(); }, 3000);
     pollBroadcastMedia();
+    pollWorldBackground();
     setStatus('Signed in as ' + displayName(token));
     try { await pullSave(); }
     catch (e) { setStatus(e.message); }
