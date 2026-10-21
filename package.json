@@ -7,7 +7,9 @@
     "lib": "lib"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "node --check server.js && node --check api/account.js && node --check lib/auth.js && node --check lib/neon-storage.js"
   },
   "repository": {
     "type": "git",
