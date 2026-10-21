@@ -289,10 +289,38 @@
             background: rgba(99, 102, 241, 0.4);
             border-radius: 3px;
         }
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(99, 102, 241, 0.7);
-        }
-    </style>
+  ::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.7);
+  }
+
+  /* Custom generated live game atmosphere */
+  body {
+    background: #050816 url('/stickman-live-background.png') center / cover fixed !important;
+    color: #f8fafc !important;
+    position: relative;
+    isolation: isolate;
+  }
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      linear-gradient(115deg, rgba(2,6,23,.82), rgba(8,15,35,.48) 48%, rgba(15,23,42,.82)),
+      radial-gradient(circle at 18% 16%, rgba(34,211,238,.18), transparent 32%),
+      radial-gradient(circle at 82% 76%, rgba(139,92,246,.2), transparent 36%);
+    background-size: 100% 100%, 180% 180%, 160% 160%;
+    animation: liveAtmosphere 18s ease-in-out infinite alternate;
+  }
+  @keyframes liveAtmosphere {
+    from { background-position: 0 0, 0% 20%, 100% 80%; opacity: .82; }
+    to { background-position: 0 0, 100% 80%, 0% 20%; opacity: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    body::after { animation: none; }
+  }
+  </style>
 </head>
 <body class="min-h-screen flex flex-col justify-between overflow-x-hidden">
 
