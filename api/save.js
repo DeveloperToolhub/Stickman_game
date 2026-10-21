@@ -1,13 +1,11 @@
-// api/save.js: stores each player's save in Supabase.
+// api/save.js: stores each player's save in demo storage.
 //   GET /api/save  -> the signed-in player's save, or null
 //   PUT /api/save  -> stores the signed-in player's save
 // Send: Authorization: Bearer <token>. The token is either a Google ID token
 // or a username session token (starts with "v1.").
 
 const { verifySession } = require('../lib/auth');
-
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const { getSave, setSave } = require('../lib/demo-storage');
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const MAX_SAVE_BYTES = 2_000_000;
 
@@ -66,16 +64,7 @@ module.exports = async (req, res) => {
   if (!identity) return res.status(401).json({ error: 'Sign-in expired. Sign in again.' });
 
   if (req.method === 'GET') {
-    const r = await fetch(
-      `${SUPABASE_URL}/rest/v1/saves?sub=eq.${encodeURIComponent(identity)}&select=data`,
-      { headers: supabaseHeaders() }
-    );
-    if (!r.ok) {
-      console.error('Supabase GET failed:', r.status, await r.text());
-      return res.status(500).json({ error: `Could not load your save (server code ${r.status}).` });
-    }
-    const rows = await r.json();
-    return res.status(200).json(rows.length ? rows[0].data : null);
+    return res.status(200).json(getSave(identity));
   }
 
   if (req.method === 'PUT') {
@@ -84,15 +73,7 @@ module.exports = async (req, res) => {
     if (JSON.stringify(body).length > MAX_SAVE_BYTES) {
       return res.status(413).json({ error: 'Save is too large.' });
     }
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/saves?on_conflict=sub`, {
-      method: 'POST',
-      headers: supabaseHeaders({ Prefer: 'resolution=merge-duplicates,return=minimal' }),
-      body: JSON.stringify({ sub: identity, data: body, updated_at: new Date().toISOString() }),
-    });
-    if (!r.ok) {
-      console.error('Supabase PUT failed:', r.status, await r.text());
-      return res.status(500).json({ error: `Could not save (server code ${r.status}).` });
-    }
+    setSave(identity, body);
     return res.status(200).json({ ok: true });
   }
 
