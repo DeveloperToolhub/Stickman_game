@@ -2,7 +2,7 @@
 //   POST /api/account { action: "create", username, password }  -> { words }
 //   POST /api/account { action: "login",  username, password, words } -> { token, username }
 const { generateSecretWords, generateRecoveryCode, normalizeWords, hashSecret, checkSecret, signSession, verifySession } = require('../lib/auth');
-const { getUser, createUser, updateUser, listUsers, createAdminMessage, listActiveMessages, createAdminMedia, listActiveMedia, grantCoins, grantSecret, listWorldState, setWorldBackground } = require('../lib/neon-storage');
+const { getUser, createUser, updateUser, listUsers, createAdminMessage, listActiveMessages, createAdminMedia, listActiveMedia, grantCoins, grantSecret, listWorldState, setWorldBackground, createChatMessage, listChatMessages } = require('../lib/neon-storage');
 
 const USERNAME_RE = /^[A-Za-z0-9_]{3,20}$/;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -42,6 +42,7 @@ module.exports = async (req, res) => {
     if (String(req.query?.resource || '') === 'messages') return res.json({ messages: await listActiveMessages() });
     if (String(req.query?.resource || '') === 'media') return res.json({ media: await listActiveMedia() });
     if (String(req.query?.resource || '') === 'world') return res.json({ world: await listWorldState() });
+    if (String(req.query?.resource || '') === 'chat') return res.json({ messages: await listChatMessages(Math.max(0, Number(req.query?.after || 0))) });
     const auth = String(req.headers.authorization || '');
     const username = auth.startsWith('Bearer ') ? verifySession(auth.slice(7)) : null;
     const user = username && await getUser(username);
@@ -81,6 +82,13 @@ module.exports = async (req, res) => {
       const background = String(body.background || 'aurora');
       if (!['aurora', 'neon-rain', 'volcano', 'cyber-grid', 'matrix'].includes(background)) return res.status(400).json({ error: 'Invalid background.' });
       return res.json({ world: await setWorldBackground(background, sessionUser) });
+    }
+
+    if (body.action === 'chat-message') {
+      const chatUsername = String(body.username || '').trim().slice(0, 20) || 'Player';
+      const message = String(body.message || '').trim().slice(0, 180);
+      if (!/^[A-Za-z0-9 _-]{1,20}$/.test(chatUsername) || !message) return res.status(400).json({ error: 'Enter a valid name and message.' });
+      return res.json({ message: await createChatMessage(chatUsername, message) });
     }
 
     if (body.action === 'broadcast-message') {
