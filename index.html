@@ -619,21 +619,21 @@
         <div id="unboxing-flash" class="absolute inset-0 pointer-events-none opacity-0"></div>
 
         <div id="unboxing-stage" class="relative z-10 flex flex-col items-center w-full max-w-5xl">
-            <div class="text-center space-y-1 mb-6">
+            <div class="text-center space-y-1 mb-3">
                 <h2 id="unboxing-pack-title" class="text-xl sm:text-2xl font-black text-white tracking-wider uppercase">Opening Pack...</h2>
                 <p id="unboxing-subtitle" class="text-xs text-indigo-300 font-semibold">Something stirs inside...</p>
             </div>
 
-            <div class="h-[22rem] sm:h-[26rem] flex items-center justify-center">
+            <div class="h-[16rem] sm:h-[19rem] flex items-center justify-center">
                 <div id="pack-stage" class="hidden"></div>
-                <div id="unboxing-cards-container" class="flex items-center justify-center gap-4 sm:gap-6 flex-wrap"></div>
+                <div id="unboxing-cards-container" class="flex items-center justify-center gap-2 sm:gap-3 flex-wrap"></div>
             </div>
 
-            <div id="unboxing-actions" class="hidden mt-6 flex items-center gap-4">
-                <button id="reveal-all-btn" onclick="revealAllPackCards()" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-extrabold text-xs sm:text-sm text-white shadow-lg shadow-indigo-500/30 transition">
+            <div id="unboxing-actions" class="hidden mt-3 flex items-center gap-2">
+                <button id="reveal-all-btn" onclick="revealAllPackCards()" class="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-extrabold text-[11px] sm:text-xs text-white shadow-lg shadow-indigo-500/30 transition">
                     ⚡ Reveal All Cards
                 </button>
-                <button id="close-unboxing-btn" onclick="closeUnboxingModal()" class="px-5 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 font-bold text-xs sm:text-sm text-gray-300 border border-gray-700 transition">
+                <button id="close-unboxing-btn" onclick="closeUnboxingModal()" class="px-3 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 font-bold text-[11px] sm:text-xs text-gray-300 border border-gray-700 transition">
                     Collect & Exit
                 </button>
             </div>
@@ -1579,7 +1579,7 @@
 
             currentActivePackCards.forEach((card, idx) => {
                 const cardEl = document.createElement('div');
-                cardEl.className = 'w-48 h-72 perspective-1000 cursor-pointer';
+                cardEl.className = 'w-32 h-48 sm:w-40 sm:h-60 perspective-1000 cursor-pointer';
                 cardEl.onclick = () => { if (!unboxingBusy) flipCard(idx); };
                 cardEl.innerHTML = `
                     <div id="pack-card-inner-${idx}" class="card-inner">
