@@ -10,6 +10,8 @@
   let idToken = null;
   let currentRole = 'player';
   let pushTimer = null;
+  let messageTimer = null;
+  let lastMessageId = 0;
   let pendingPush = false;
 
   // ----- token helpers (Google tokens and username tokens both carry a JSON payload) -----
@@ -145,7 +147,11 @@
       </div>`;
     document.getElementById('admin-send-message').onclick = () => {
       const message = document.getElementById('admin-message').value.trim();
-      if (message) showAdminMessage(message);
+      if (message) {
+        fetch('/api/account', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + idToken }, body: JSON.stringify({ action: 'broadcast-message', message }) })
+          .then(async (response) => { const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || 'Could not send message.'); showAdminMessage('Message sent to active players.', '#86efac'); })
+          .catch((error) => showAdminMessage(error.message, '#fca5a5'));
+      }
     };
     document.querySelectorAll('.admin-theme').forEach((button) => { button.onclick = () => applyAdminTheme(button.dataset.theme); });
     document.getElementById('admin-play-video').onclick = playAdminYouTube;
@@ -322,6 +328,18 @@
   });
 
   // ----- sign-in state -----
+  async function pollBroadcastMessages() {
+    try {
+      const response = await fetch('/api/account?resource=messages', { cache: 'no-store' });
+      if (!response.ok) return;
+      const data = await response.json();
+      const newest = (data.messages || []).sort((a, b) => Number(a.id) - Number(b.id)).find((item) => Number(item.id) > lastMessageId);
+      if (newest) { lastMessageId = Number(newest.id); showAdminMessage(newest.message, '#fef08a'); }
+    } catch (error) {
+      console.log('[v0] broadcast polling failed:', error.message);
+    }
+  }
+
   async function onToken(token, role) {
     idToken = token;
     currentRole = role || (displayName(token) === 'admin' ? 'moderator' : 'player');
@@ -330,6 +348,10 @@
     document.getElementById('cloud-user-btn').style.display = 'none';
     document.getElementById('cloud-signout').style.display = 'inline-block';
     document.getElementById('cloud-admin-btn').style.display = currentRole === 'moderator' ? 'inline-block' : 'none';
+    clearInterval(messageTimer);
+    lastMessageId = 0;
+    pollBroadcastMessages();
+    messageTimer = setInterval(pollBroadcastMessages, 3000);
     setStatus('Signed in as ' + displayName(token));
     try { await pullSave(); }
     catch (e) { setStatus(e.message); }

@@ -2,7 +2,7 @@
 //   POST /api/account { action: "create", username, password }  -> { words }
 //   POST /api/account { action: "login",  username, password, words } -> { token, username }
 const { generateSecretWords, generateRecoveryCode, normalizeWords, hashSecret, checkSecret, signSession, verifySession } = require('../lib/auth');
-const { getUser, createUser, updateUser, listUsers } = require('../lib/neon-storage');
+const { getUser, createUser, updateUser, listUsers, createAdminMessage, listActiveMessages } = require('../lib/neon-storage');
 
 const USERNAME_RE = /^[A-Za-z0-9_]{3,20}$/;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -39,12 +39,14 @@ module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   await ensureAdmin();
   if (req.method === 'GET') {
+    if (String(req.query?.resource || '') === 'messages') return res.json({ messages: await listActiveMessages() });
     const auth = String(req.headers.authorization || '');
     const username = auth.startsWith('Bearer ') ? verifySession(auth.slice(7)) : null;
     const user = username && await getUser(username);
     if (!user || user.role !== 'moderator') return res.status(403).json({ error: 'Moderator access required.' });
     return res.json({ users: (await listUsers()).map(({ username: name, created_at }) => ({ username: name, created_at })) });
   }
+
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed.' });
 
   const body = req.body || {};
@@ -53,6 +55,16 @@ module.exports = async (req, res) => {
   const password = String(body.password || '');
 
   try {
+    if (body.action === 'broadcast-message') {
+      const auth = String(req.headers.authorization || '');
+      const sessionUser = auth.startsWith('Bearer ') ? verifySession(auth.slice(7)) : null;
+      const sender = sessionUser && await getUser(sessionUser);
+      if (!sender || sender.role !== 'moderator') return res.status(403).json({ error: 'Moderator access required.' });
+      const message = String(body.message || '').trim().slice(0, 500);
+      if (!message) return res.status(400).json({ error: 'Message cannot be empty.' });
+      return res.json({ message: await createAdminMessage(message) });
+    }
+
     if (body.action === 'google-login') {
       const googleId = await verifyGoogleCredential(String(body.credential || ''));
       if (!googleId) return res.status(401).json({ error: 'Google sign-in expired. Please try again.' });
