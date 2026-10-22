@@ -348,11 +348,17 @@
         }
         @media (prefers-reduced-motion: reduce) {
             body::before, body::after { animation: none !important; }
+  body[data-admin-fx="neon"] { background:radial-gradient(circle at 20% 20%,#312e81,transparent 35%),radial-gradient(circle at 80% 80%,#0e7490,transparent 35%),#020617 !important; }
+  body[data-admin-fx="shake"] .glass-panel, body[data-admin-fx="shake"] nav { animation: adminShake .18s linear infinite alternate; }
+  body[data-admin-fx="confetti"]::after { content:'✦  ·  ✧  ·  ✦  ·  ✧  ·  ✦'; position:fixed; inset:0; z-index:70; pointer-events:none; color:#f0abfc; font-size:42px; letter-spacing:24px; opacity:.55; animation: confettiFloat 2s ease-in-out infinite alternate; }
+  @keyframes adminShake { from { transform:translateX(-2px) rotate(-.2deg); } to { transform:translateX(2px) rotate(.2deg); } }
+  @keyframes confettiFloat { from { transform:translateY(10px) rotate(-3deg); } to { transform:translateY(-10px) rotate(3deg); } }
         }
         .chat-view { max-width: 760px; margin: 0 auto; }
         .imessage-shell { overflow: hidden; border: 1px solid #d1d1d6; border-radius: 24px; background: #f2f2f7; box-shadow: 0 18px 50px rgba(60,60,67,.18); color: #1c1c1e; }
         .imessage-header { display:flex; align-items:center; gap:10px; padding:12px 16px; background:rgba(255,255,255,.94); border-bottom:1px solid #d1d1d6; }
-        .chat-back, .chat-info, .chat-plus, .chat-send { border:0; cursor:pointer; }
+        .chat-back, .chat-info, .chat-plus, .chat-send, .chat-nickname { border:0; cursor:pointer; }
+  .chat-nickname { order:5; max-width:82px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 8px; border:1px solid rgba(0,122,255,.25); border-radius:10px; color:#007aff; background:#eef5ff; font-size:10px; font-weight:800; }
         .chat-back { background:transparent; color:#007aff; font-size:35px; line-height:24px; padding:0 8px 5px 0; }
         .chat-avatar { width:38px; height:38px; display:grid; place-items:center; border-radius:50%; color:#fff; font-weight:900; background:linear-gradient(145deg,#007aff,#5856d6); }
         .chat-contact { flex:1; text-align:center; display:flex; flex-direction:column; gap:2px; margin-left:-30px; }
@@ -503,7 +509,7 @@
   <!-- VIEW: CHAT -->
   <section id="view-chat" class="tab-view hidden chat-view">
     <div class="imessage-shell">
-      <header class="imessage-header"><button class="chat-back" type="button" aria-label="Back to updates" onclick="switchTab('updates')">‹</button><div class="chat-avatar" aria-hidden="true">S</div><div class="chat-contact"><strong>Stickman Community</strong><span><i></i> Public group chat</span></div><button id="jitsi-call-button" class="chat-call jitsi-call" type="button" aria-label="Open community Jitsi call"><span aria-hidden="true">◉</span> Join call</button></header>
+      <header class="imessage-header"><button id="chat-nickname-button" class="chat-nickname" type="button" aria-label="Change chat nickname">Nickname</button><button class="chat-back" type="button" aria-label="Back to updates" onclick="switchTab('updates')">‹</button><div class="chat-avatar" aria-hidden="true">S</div><div class="chat-contact"><strong>Stickman Community</strong><span><i></i> Public group chat</span></div><button id="jitsi-call-button" class="chat-call jitsi-call" type="button" aria-label="Open community Jitsi call"><span aria-hidden="true">◉</span> Join call</button></header>
       <div id="jitsi-call-status" class="call-status" role="status">Community calls open in a secure Jitsi room.</div><div id="jitsi-call-modal" class="jitsi-call-modal" hidden><div class="jitsi-call-toolbar"><strong>Stickman Community Call</strong><button id="jitsi-close" type="button" aria-label="Close call">Close</button></div><iframe id="jitsi-frame" title="Stickman Community Jitsi call" allow="camera; microphone; fullscreen; display-capture" referrerpolicy="no-referrer" hidden></iframe></div><div id="chat-messages" class="imessage-messages" aria-live="polite"><div class="chat-day">TODAY</div><div class="message-row incoming"><div class="message-bubble">Welcome to the arena. Share your rare pulls here.</div><time>Now</time></div></div>
       <form id="chat-form" class="imessage-composer"><button class="chat-plus" type="button" aria-label="Add attachment">+</button><input id="chat-input" maxlength="180" autocomplete="off" placeholder="iMessage" aria-label="Message"><button class="chat-send" type="submit" aria-label="Send message">↑</button></form>
     </div>
@@ -1609,10 +1615,15 @@
             show(reward.card ? `Unlocked the secret card ${reward.card}!` : `+${reward.coins} coins added!`, '#86efac');
         }
 
-  function setupPublicChat(form) {
-    const input = document.getElementById('chat-input');
-    const messages = document.getElementById('chat-messages');
-    const me = (localStorage.getItem('STICKMAN_CHAT_NAME') || `Player${Math.floor(Math.random() * 900 + 100)}`).replace(/[^A-Za-z0-9_]/g, '').slice(0, 20) || 'Player';
+function setupPublicChat(form) {
+  const input = document.getElementById('chat-input');
+  const messages = document.getElementById('chat-messages');
+  const nicknameKey = 'STICKMAN_CHAT_NICKNAME';
+  const blockedWords = ['slur','spamword','badword'];
+  const cleanChatText = (value) => value.split(/(\s+)/).map((part) => blockedWords.some((word) => part.toLowerCase().includes(word)) ? '•••' : part).join('');
+  const me = (localStorage.getItem('STICKMAN_CHAT_NAME') || `Player${Math.floor(Math.random() * 900 + 100)}`).replace(/[^A-Za-z0-9_]/g, '').slice(0, 20) || 'Player';
+  let nickname = localStorage.getItem(nicknameKey) || me;
+  document.getElementById('chat-nickname-button').textContent = nickname;
     localStorage.setItem('STICKMAN_CHAT_NAME', me);
 let lastMessageId = 0;
   let lastSignalId = 0;
@@ -1621,7 +1632,8 @@ let lastMessageId = 0;
     let activeConnection = null;
     let activeStream = null;
     let callStartedAt = 0;
-    const addMessage = (item) => { if (document.querySelector(`[data-message-id="${item.id}"]`)) return; const row = document.createElement('div'); row.dataset.messageId = item.id; row.className = `message-row ${item.username === me ? 'outgoing' : 'incoming'}`; const name = document.createElement('small'); name.className = 'chat-sender-name'; name.textContent = item.username === me ? 'You' : item.username; const bubble = document.createElement('div'); bubble.className = 'message-bubble'; bubble.textContent = item.message; const time = document.createElement('time'); time.textContent = new Date(item.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); row.append(name, bubble, time); messages.appendChild(row); messages.scrollTop = messages.scrollHeight; };
+    document.getElementById('chat-nickname-button').onclick = () => { const next = window.prompt('Choose a chat nickname', nickname); if (!next) return; nickname = next.replace(/[^A-Za-z0-9 _-]/g, '').trim().slice(0, 20) || me; localStorage.setItem(nicknameKey, nickname); document.getElementById('chat-nickname-button').textContent = nickname; };
+  const addMessage = (item) => { if (document.querySelector(`[data-message-id="${item.id}"]`)) return; const row = document.createElement('div'); row.dataset.messageId = item.id; row.className = `message-row ${item.username === me ? 'outgoing' : 'incoming'}`; const name = document.createElement('small'); name.className = 'chat-sender-name'; name.textContent = item.username === me ? `${nickname} · You` : (item.nickname || item.username); const bubble = document.createElement('div'); bubble.className = 'message-bubble'; bubble.textContent = cleanChatText(item.message); const time = document.createElement('time'); time.textContent = new Date(item.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); row.append(name, bubble, time); messages.appendChild(row); messages.scrollTop = messages.scrollHeight; };
     const pollMessages = async () => { try { const response = await fetch(`/api/account?resource=chat&after=${lastMessageId}`, { cache: 'no-store' }); const data = await response.json(); (data.messages || []).forEach((item) => { addMessage(item); lastMessageId = Math.max(lastMessageId, Number(item.id)); }); } catch {} };
   const openJitsiCall = () => { const modal = document.getElementById('jitsi-call-modal'); const frame = document.getElementById('jitsi-frame'); const room = `StickmanCommunity-${location.hostname.replace(/[^a-z0-9]/gi, '')}`; frame.src = `https://meet.jit.si/${room}#config.prejoinPageEnabled=false&config.disableDeepLinking=true&interfaceConfig.SHOW_JITSI_WATERMARK=false`; frame.hidden = false; modal.hidden = false; document.getElementById('jitsi-call-status').textContent = 'Connected through Jitsi Meet. Share the room with your community.'; };
   const closeJitsiCall = () => { const modal = document.getElementById('jitsi-call-modal'); const frame = document.getElementById('jitsi-frame'); frame.src = 'about:blank'; frame.hidden = true; modal.hidden = true; document.getElementById('jitsi-call-status').textContent = 'Community calls open in a secure Jitsi room.'; };
@@ -1634,7 +1646,7 @@ const announcePresence = () => fetch('/api/account', { method: 'POST', headers: 
     let screenPeer = null; let screenCursor = 0; let screenCallId = '';
     const watchAdminScreen = async () => { if (!window.Peer || !screenPeer) { if (!window.Peer) return; screenPeer = new Peer(); screenPeer.on('call', (incoming) => { incoming.answer(); incoming.on('stream', (stream) => { let viewer = document.getElementById('live-screen-share'); if (!viewer) { viewer = document.createElement('video'); viewer.id = 'live-screen-share'; viewer.autoplay = true; viewer.playsInline = true; viewer.controls = true; viewer.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:84;width:min(520px,calc(100vw - 32px));max-height:48vh;border:2px solid #22d3ee;border-radius:16px;background:#020617;box-shadow:0 20px 60px rgba(0,0,0,.5);'; document.body.appendChild(viewer); } viewer.srcObject = stream; viewer.play().catch(() => {}); }); }); } if (!screenPeer.open) return; try { const response = await fetch(`/api/account?resource=screen-share-signals&callId=${encodeURIComponent(screenCallId)}&after=${screenCursor}`, { cache:'no-store' }); const data = await response.json(); for (const signal of data.signals || []) { screenCursor = Math.max(screenCursor, Number(signal.id)); if (signal.kind === 'start' && signal.payload?.peerId) { screenCallId = signal.call_id; await fetch('/api/account', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ action:'screen-share-signal', sender:me, callId:screenCallId, kind:'viewer', payload:{ peerId:screenPeer.id } }) }); } if (signal.kind === 'stop' && signal.call_id === screenCallId) { document.getElementById('live-screen-share')?.remove(); screenCallId = ''; } } } catch {} };
     const startPublicCall = async () => { try { activeCallId = `${me}-${Date.now()}`; lastSignalId = 0; await sendCallSignal('offer', { video: false, startedAt: Date.now(), ringing: true }); document.getElementById('call-status').textContent = 'Calling everyone…'; activeStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false }); activeConnection = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }); activeStream.getTracks().forEach((track) => activeConnection.addTrack(track, activeStream)); activeConnection.onicecandidate = (event) => { if (event.candidate) sendCallSignal('candidate', event.candidate.toJSON()); }; const offer = await activeConnection.createOffer(); await activeConnection.setLocalDescription(offer); await sendCallSignal('offer', { ...offer, video: false }); await showActiveCall(me, false); document.getElementById('call-status').textContent = `${video ? 'Video' : 'Voice'} call is ringing everyone online.`; } catch { stopCall(); document.getElementById('call-status').textContent = 'Microphone access is required for voice calls. Please allow microphone access in your browser settings.'; } };
-    form.addEventListener('submit', async (event) => { event.preventDefault(); const text = input.value.trim(); if (!text) return; const response = await fetch('/api/account', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'chat-message', username: me, message: text }) }); if (response.ok) { input.value = ''; addMessage((await response.json()).message); } });
+    form.addEventListener('submit', async (event) => { event.preventDefault(); const text = input.value.trim(); if (!text) return; const response = await fetch('/api/account', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'chat-message', username: me, nickname, message: cleanChatText(text) }) }); if (response.ok) { input.value = ''; addMessage((await response.json()).message); } });
     document.getElementById('jitsi-call-button').onclick = openJitsiCall; document.getElementById('jitsi-close').onclick = closeJitsiCall; announcePresence(); pollMessages(); watchAdminScreen(); setInterval(() => { announcePresence(); pollMessages(); watchAdminScreen(); }, 2000);
   }
 
@@ -1668,7 +1680,7 @@ const announcePresence = () => fetch('/api/account', { method: 'POST', headers: 
       const row = document.createElement('div');
       row.className = `message-row ${item.sender === me ? 'outgoing' : 'incoming'}`;
       const name = document.createElement('small'); name.className = 'chat-sender-name'; name.textContent = item.sender === me ? 'You' : item.sender;
-      const bubble = document.createElement('div'); bubble.className = 'message-bubble'; bubble.textContent = item.message;
+      const bubble = document.createElement('div'); bubble.className = 'message-bubble'; bubble.textContent = cleanChatText(item.message);
       const time = document.createElement('time'); time.textContent = new Date(item.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
       row.append(name, bubble, time); messages.appendChild(row); messages.scrollTop = messages.scrollHeight;
     };

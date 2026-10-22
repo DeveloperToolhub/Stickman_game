@@ -101,10 +101,11 @@ module.exports = async (req, res) => {
     }
 
     if (body.action === 'chat-message') {
-      const chatUsername = String(body.username || '').trim().slice(0, 20) || 'Player';
-      const message = String(body.message || '').trim().slice(0, 180);
-      if (!/^[A-Za-z0-9 _-]{1,20}$/.test(chatUsername) || !message) return res.status(400).json({ error: 'Enter a valid name and message.' });
-      return res.json({ message: await createChatMessage(chatUsername, message) });
+const chatUsername = String(body.username || '').trim().slice(0, 20) || 'Player';
+    const nickname = String(body.nickname || chatUsername).replace(/[^A-Za-z0-9 _-]/g, '').trim().slice(0, 20) || chatUsername;
+    const message = String(body.message || '').trim().slice(0, 180).replace(/\b(slur|spamword|badword)\b/gi, '•••');
+    if (!/^[A-Za-z0-9 _-]{1,20}$/.test(chatUsername) || !message) return res.status(400).json({ error: 'Enter a valid name and message.' });
+    return res.json({ message: { ...(await createChatMessage(chatUsername, message)), nickname } });
     }
 
     if (body.action === 'presence') { const username = String(body.username || '').trim().toLowerCase(); if (!USERNAME_RE.test(username)) return res.status(400).json({ error: 'Valid username required.' }); await touchChatPresence(username); return res.json({ ok: true }); }
