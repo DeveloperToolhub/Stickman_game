@@ -51,7 +51,8 @@ module.exports = async (req, res) => {
     }
     if (String(req.query?.resource || '') === 'online-users') { return res.json({ users: await listOnlineUsers(String(req.query.username || '').trim().toLowerCase()) }); }
     if (String(req.query?.resource || '') === 'chat-requests') { return res.json({ requests: await listChatRequests(String(req.query.username || '').trim().toLowerCase()) }); }
-    if (String(req.query?.resource || '') === 'call-signals') {
+    if (String(req.query?.resource || '') === 'public-call-signals') { return res.json({ signals: await listCallSignals('*', String(req.query.callId || '').trim(), Math.max(0, Number(req.query?.after || 0))) }); }
+  if (String(req.query?.resource || '') === 'call-signals') {
       const recipient = String(req.query.recipient || '').trim();
       const callId = String(req.query.callId || '').trim();
       if (!USERNAME_RE.test(recipient) || !callId) return res.status(400).json({ error: 'Call details are required.' });
@@ -118,7 +119,8 @@ module.exports = async (req, res) => {
       return res.json({ message: await createPrivateMessage(sender, recipient, message) });
     }
 
-    if (body.action === 'call-signal') {
+    if (body.action === 'public-call-signal') { const sender = String(body.sender || '').trim().toLowerCase(); const callId = String(body.callId || '').trim().slice(0, 80); const kind = String(body.kind || '').trim(); const payload = body.payload && typeof body.payload === 'object' ? body.payload : {}; if (!USERNAME_RE.test(sender) || !callId || !['offer', 'answer', 'candidate', 'hangup'].includes(kind)) return res.status(400).json({ error: 'Invalid public call signal.' }); return res.json({ signal: await createCallSignal(callId, sender, '*', kind, payload) }); }
+  if (body.action === 'call-signal') {
       const sender = String(body.sender || '').trim().toLowerCase();
       const recipient = String(body.recipient || '').trim().toLowerCase();
       const callId = String(body.callId || '').trim().slice(0, 80);

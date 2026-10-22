@@ -377,6 +377,8 @@
   .chat-request .decline { background:#8e8e93; }
   .chat-call { background:#34c759; padding:6px 8px; }
   .call-status { min-height:0; padding:0 12px; color:#6d6d72; font-size:11px; background:#fff; }
+  .incoming-call-alert { position:fixed; left:50%; top:18px; transform:translateX(-50%); z-index:100; display:flex; align-items:center; gap:10px; padding:12px 16px; border-radius:18px; background:#fff; color:#1c1c1e; border:1px solid #d1d1d6; box-shadow:0 12px 35px rgba(0,0,0,.25); font-weight:800; }
+  .incoming-call-alert button { border:0; border-radius:10px; padding:7px 10px; color:#fff; background:#34c759; font-weight:800; cursor:pointer; }
   .private-video-wrap { position:relative; display:grid; grid-template-columns:1fr 110px; gap:8px; padding:10px; background:#111827; }
   .private-video-wrap video { width:100%; aspect-ratio:16/9; object-fit:cover; background:#000; border-radius:10px; }
   .private-video-wrap #local-video { align-self:end; }
@@ -462,8 +464,8 @@
   <!-- VIEW: CHAT -->
   <section id="view-chat" class="tab-view hidden chat-view">
     <div class="imessage-shell">
-      <header class="imessage-header"><button class="chat-back" type="button" aria-label="Back to updates" onclick="switchTab('updates')">‹</button><div class="chat-avatar" aria-hidden="true">S</div><div class="chat-contact"><strong id="private-chat-title">Private chat</strong><span><i></i> Secure player messaging</span></div><button id="video-call-button" class="chat-call" type="button" aria-label="Start video call">Video</button><button id="voice-call-button" class="chat-call" type="button" aria-label="Start voice call">Call</button></header>
-      <div class="private-chat-target"><label for="private-peer">Chat with</label><input id="private-peer" maxlength="20" pattern="[A-Za-z0-9_]{3,20}" placeholder="username"><button id="private-open" type="button">Open</button></div><div class="online-users-panel"><div class="online-users-heading"><strong>Online now</strong><button id="refresh-online" type="button">Refresh</button></div><div id="online-users" class="online-users-list"><span>Loading players…</span></div><div id="chat-requests" class="chat-requests-list"></div></div><div id="call-status" class="call-status" role="status"></div><div id="private-video-wrap" class="private-video-wrap" hidden><video id="remote-video" autoplay playsinline></video><video id="local-video" autoplay muted playsinline></video><button id="end-call" type="button">End call</button></div><div id="chat-messages" class="imessage-messages" aria-live="polite"><div class="chat-day">TODAY</div><div class="message-row incoming"><div class="message-bubble">Welcome to the arena. Share your rare pulls here.</div><time>Now</time></div></div>
+      <header class="imessage-header"><button class="chat-back" type="button" aria-label="Back to updates" onclick="switchTab('updates')">‹</button><div class="chat-avatar" aria-hidden="true">S</div><div class="chat-contact"><strong>Stickman Community</strong><span><i></i> Public group chat</span></div><button id="video-call-button" class="chat-call" type="button" aria-label="Call everyone online">Video all</button><button id="voice-call-button" class="chat-call" type="button" aria-label="Call everyone online">Call all</button></header>
+      <div class="online-users-panel"><div class="online-users-heading"><strong id="online-count">Online now</strong><button id="refresh-online" type="button">Refresh</button></div><div id="online-users" class="online-users-list"><span>Loading players…</span></div></div><div id="call-status" class="call-status" role="status"></div><div id="public-video-wrap" class="private-video-wrap" hidden><video id="public-remote-video" autoplay playsinline></video><video id="public-local-video" autoplay muted playsinline></video><button id="end-call" type="button">End call</button></div><div id="chat-messages" class="imessage-messages" aria-live="polite"><div class="chat-day">TODAY</div><div class="message-row incoming"><div class="message-bubble">Welcome to the arena. Share your rare pulls here.</div><time>Now</time></div></div>
       <form id="chat-form" class="imessage-composer"><button class="chat-plus" type="button" aria-label="Add attachment">+</button><input id="chat-input" maxlength="180" autocomplete="off" placeholder="iMessage" aria-label="Message"><button class="chat-send" type="submit" aria-label="Send message">↑</button></form>
     </div>
   </section>
@@ -1568,8 +1570,29 @@
             show(reward.card ? `Unlocked the secret card ${reward.card}!` : `+${reward.coins} coins added!`, '#86efac');
         }
 
+  function setupPublicChat(form) {
+    const input = document.getElementById('chat-input');
+    const messages = document.getElementById('chat-messages');
+    const me = (localStorage.getItem('STICKMAN_CHAT_NAME') || `Player${Math.floor(Math.random() * 900 + 100)}`).replace(/[^A-Za-z0-9_]/g, '').slice(0, 20) || 'Player';
+    localStorage.setItem('STICKMAN_CHAT_NAME', me);
+    let lastMessageId = 0;
+    let lastSignalId = 0;
+    let activeCallId = '';
+    const addMessage = (item) => { if (document.querySelector(`[data-message-id="${item.id}"]`)) return; const row = document.createElement('div'); row.dataset.messageId = item.id; row.className = `message-row ${item.username === me ? 'outgoing' : 'incoming'}`; const name = document.createElement('small'); name.className = 'chat-sender-name'; name.textContent = item.username === me ? 'You' : item.username; const bubble = document.createElement('div'); bubble.className = 'message-bubble'; bubble.textContent = item.message; const time = document.createElement('time'); time.textContent = new Date(item.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); row.append(name, bubble, time); messages.appendChild(row); messages.scrollTop = messages.scrollHeight; };
+    const pollMessages = async () => { try { const response = await fetch(`/api/account?resource=chat&after=${lastMessageId}`, { cache: 'no-store' }); const data = await response.json(); (data.messages || []).forEach((item) => { addMessage(item); lastMessageId = Math.max(lastMessageId, Number(item.id)); }); } catch {} };
+    const showCallAlert = (signal) => { if (document.querySelector('.incoming-call-alert') || signal.sender === me) return; const alert = document.createElement('div'); alert.className = 'incoming-call-alert'; alert.innerHTML = `<span>Someone is calling you!</span>`; const join = document.createElement('button'); join.textContent = 'Join'; join.onclick = () => { alert.remove(); document.getElementById('call-status').textContent = `You joined ${signal.sender}'s ${signal.payload.video ? 'video' : 'voice'} call.`; }; alert.appendChild(join); document.body.appendChild(alert); setTimeout(() => alert.remove(), 30000); };
+    const pollCalls = async () => { try { const response = await fetch(`/api/account?resource=public-call-signals&callId=&after=${lastSignalId}`, { cache: 'no-store' }); const data = await response.json(); (data.signals || []).forEach((signal) => { lastSignalId = Math.max(lastSignalId, Number(signal.id)); if (signal.kind === 'offer') { activeCallId = signal.call_id; showCallAlert(signal); } }); } catch {} };
+    const announcePresence = () => fetch('/api/account', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'presence', username: me }) }).catch(() => {});
+    const startPublicCall = async (video) => { try { await navigator.mediaDevices.getUserMedia({ audio: true, video }); activeCallId = `${me}-${Date.now()}`; lastSignalId = 0; await fetch('/api/account', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'public-call-signal', sender: me, callId: activeCallId, kind: 'offer', payload: { video } }) }); document.getElementById('call-status').textContent = `${video ? 'Video' : 'Voice'} call started for everyone online.`; } catch { document.getElementById('call-status').textContent = 'Microphone or camera permission is required.'; } };
+    form.addEventListener('submit', async (event) => { event.preventDefault(); const text = input.value.trim(); if (!text) return; const response = await fetch('/api/account', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'chat-message', username: me, message: text }) }); if (response.ok) { input.value = ''; addMessage((await response.json()).message); } });
+    document.getElementById('video-call-button').onclick = () => startPublicCall(true); document.getElementById('voice-call-button').onclick = () => startPublicCall(false); document.getElementById('refresh-online').onclick = announcePresence; announcePresence(); pollMessages(); setInterval(() => { announcePresence(); pollMessages(); pollCalls(); }, 2000);
+  }
+
   function setupChat() {
     const form = document.getElementById('chat-form');
+    if (!form || form.dataset.ready) return;
+    form.dataset.ready = 'true';
+    return setupPublicChat(form);
     if (!form || form.dataset.ready) return;
     form.dataset.ready = 'true';
     const input = document.getElementById('chat-input');
