@@ -134,6 +134,7 @@ const chatUsername = String(body.username || '').trim().slice(0, 20) || 'Player'
       return res.json({ signal: await createCallSignal(callId, sender, recipient, kind, payload) });
     }
 
+    if (body.action === 'create-reward-code') { const auth = String(req.headers.authorization || ''); const sessionUser = auth.startsWith('Bearer ') ? verifySession(auth.slice(7)) : null; const user = sessionUser && await getUser(sessionUser); if (!user || user.role !== 'moderator') return res.status(403).json({ error: 'Moderator access required.' }); const code = String(body.code || '').trim().toUpperCase(); if (!/^STICK-[A-Z0-9]{10}$/.test(code)) return res.status(400).json({ error: 'Invalid code.' }); return res.json({ code }); }
     if (body.action === 'broadcast-message') {
       const auth = String(req.headers.authorization || '');
       const sessionUser = auth.startsWith('Bearer ') ? verifySession(auth.slice(7)) : null;
