@@ -939,7 +939,13 @@
             { id: 'admin', title: 'Admin Abuse Pack', cost: 5000, icon: '🔨', accent: '#f43f5e', desc: 'The ultimate admin pack: packed with mythics, secrets, and power that should not be allowed.', themeColor: 'from-rose-600 to-red-950', cardsPerPack: 6, days: [3, 5, 6], secretChance: 0.25,
               rates: { Common: 0, Uncommon: 5, Rare: 15, Epic: 25, Legendary: 25, Mythic: 30 } },
             { id: 'mystery', title: '???', cost: 10000, icon: '❔', accent: '#e879f9', desc: 'A limited mystery pack with the strongest mythics and rarest secrets. Every card is Mythic or better.', themeColor: 'from-fuchsia-700 via-violet-900 to-black', cardsPerPack: 6, days: [3, 5], secretChance: 1,
-              rates: { Common: 0, Uncommon: 0, Rare: 0, Epic: 0, Legendary: 25, Mythic: 75 } }
+              rates: { Common: 0, Uncommon: 0, Rare: 0, Epic: 0, Legendary: 25, Mythic: 75 } },
+            { id: 'fnaf', title: 'FNAF Night Shift Pack', cost: 850, icon: '🐻', accent: '#ef4444', desc: 'Only Five Nights at Freddy’s animatronic characters appear in this pack.', themeColor: 'from-red-950 via-slate-900 to-black', cardsPerPack: 4,
+              rates: { Common: 25, Uncommon: 30, Rare: 25, Epic: 12, Legendary: 6, Mythic: 2 } },
+            { id: 'ten-coin', title: 'Ten Coin Pack', cost: 10, icon: '🪙', accent: '#facc15', desc: 'A tiny ten-coin pack for quick, low-cost pulls.', themeColor: 'from-yellow-500 to-amber-800', cardsPerPack: 1,
+              rates: { Common: 85, Uncommon: 12, Rare: 2.5, Epic: 0.5, Legendary: 0, Mythic: 0 } },
+            { id: 'billionaire', title: 'Billionaire Pack', cost: 1000000000, icon: '💎', accent: '#22d3ee', desc: 'The ultimate one-billion-coin vault with premium odds.', themeColor: 'from-cyan-500 via-blue-700 to-violet-950', cardsPerPack: 8, featured: true,
+              rates: { Common: 0, Uncommon: 0, Rare: 5, Epic: 20, Legendary: 35, Mythic: 40 } }
         ];
 
         // Procedural Stickman Generators Data (pack-specific pools)
@@ -975,7 +981,13 @@
             { name: "Comet Monarch", pack: "galaxy", pose: "Heroic", head: "Crown", weapon: "Scythe", stickColor: "#ddd6fe", auraColor: "#5b21b6", ability: "Rides a tail of fire." },
             { name: "Ban Hammer Stick", pack: "admin", pose: "Attacking", head: "Cyber Visor", weapon: "Staff", stickColor: "#fb7185", auraColor: "#9f1239", ability: "Bans first. Asks questions never." },
             { name: "Mod Mage", pack: "admin", pose: "Floating", head: "Wizard Hat", weapon: "Staff", stickColor: "#fda4af", auraColor: "#be123c", ability: "Mutes anyone who disagrees." },
-            { name: "Admin Abuser", pack: "admin", pose: "Dual Wield", head: "Demon Horns", weapon: "Saber", stickColor: "#f43f5e", auraColor: "#881337", ability: "Gave itself infinite power. Obviously." }
+            { name: "Admin Abuser", pack: "admin", pose: "Dual Wield", head: "Demon Horns", weapon: "Saber", stickColor: "#f43f5e", auraColor: "#881337", ability: "Gave itself infinite power. Obviously." },
+            { name: "Freddy Fazbear", pack: "fnaf", pose: "Heroic", head: "Freddy Head", weapon: "Microphone", stickColor: "#92400e", auraColor: "#ef4444", ability: "The show starts when the lights go out." },
+            { name: "Bonnie", pack: "fnaf", pose: "Attacking", head: "Bonnie Head", weapon: "Guitar", stickColor: "#7c3aed", auraColor: "#a78bfa", ability: "A purple shadow with a midnight riff." },
+            { name: "Chica", pack: "fnaf", pose: "Heroic", head: "Chica Head", weapon: "Cupcake", stickColor: "#facc15", auraColor: "#f59e0b", ability: "厨房 lights flicker when she enters." },
+            { name: "Foxy", pack: "fnaf", pose: "Attacking", head: "Foxy Head", weapon: "Hook", stickColor: "#b91c1c", auraColor: "#f97316", ability: "Runs from Pirate Cove before the clock strikes six." },
+            { name: "Springtrap", pack: "fnaf", pose: "Floating", head: "Springtrap Head", weapon: "Claw", stickColor: "#65a30d", auraColor: "#84cc16", ability: "Some legends never stay buried." },
+            { name: "Golden Freddy", pack: "fnaf", pose: "Floating", head: "Golden Freddy Head", weapon: "None", stickColor: "#eab308", auraColor: "#fef08a", ability: "He appears when the game should have ended." }
         ];
 
         // SECRET: Verity can turn up in any pack. Change SECRET_CHANCE to tune how often (0.03 = 3% per card).
