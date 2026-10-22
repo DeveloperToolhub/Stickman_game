@@ -363,6 +363,17 @@
         .imessage-composer { display:flex; align-items:center; gap:8px; padding:10px 12px calc(10px + env(safe-area-inset-bottom)); background:#fff; border-top:1px solid #d1d1d6; }
         .chat-plus { width:30px; height:30px; border-radius:50%; background:#e5e5ea; color:#6d6d72; font-size:23px; line-height:25px; } .imessage-composer input { flex:1; min-width:0; margin:0; border-radius:18px !important; background:#fff !important; padding:8px 12px !important; }
         .chat-send { width:30px; height:30px; border-radius:50%; background:#007aff; color:#fff; font-size:20px; font-weight:900; line-height:25px; }
+  .private-chat-target { display:flex; gap:8px; align-items:center; padding:10px 12px; background:#fff; border-bottom:1px solid #d1d1d6; }
+  .private-chat-target label { font-size:12px; color:#6d6d72; font-weight:700; white-space:nowrap; }
+  .private-chat-target input { flex:1; min-width:0; margin:0; padding:8px 10px !important; border-radius:12px !important; }
+  .private-chat-target button, .chat-call, #end-call { border:0; border-radius:10px; background:#007aff; color:#fff; padding:8px 10px; font-size:11px; font-weight:800; cursor:pointer; }
+  .chat-call { background:#34c759; padding:6px 8px; }
+  .call-status { min-height:0; padding:0 12px; color:#6d6d72; font-size:11px; background:#fff; }
+  .private-video-wrap { position:relative; display:grid; grid-template-columns:1fr 110px; gap:8px; padding:10px; background:#111827; }
+  .private-video-wrap video { width:100%; aspect-ratio:16/9; object-fit:cover; background:#000; border-radius:10px; }
+  .private-video-wrap #local-video { align-self:end; }
+  .private-video-wrap #end-call { position:absolute; right:12px; bottom:12px; background:#ff3b30; }
+
         @media (max-width:640px) { .chat-view { margin-inline:-4px; } .imessage-shell { border-radius:18px; } .imessage-messages { min-height:calc(100vh - 300px); max-height:none; } .message-row { max-width:86%; } }
     </style>
 </head>
@@ -443,8 +454,8 @@
   <!-- VIEW: CHAT -->
   <section id="view-chat" class="tab-view hidden chat-view">
     <div class="imessage-shell">
-      <header class="imessage-header"><button class="chat-back" type="button" aria-label="Back to updates" onclick="switchTab('updates')">‹</button><div class="chat-avatar" aria-hidden="true">S</div><div class="chat-contact"><strong>Stickman Community</strong><span><i></i> Active now</span></div><button class="chat-info" type="button" aria-label="Chat information">i</button></header>
-      <div id="chat-messages" class="imessage-messages" aria-live="polite"><div class="chat-day">TODAY</div><div class="message-row incoming"><div class="message-bubble">Welcome to the arena. Share your rare pulls here.</div><time>Now</time></div></div>
+      <header class="imessage-header"><button class="chat-back" type="button" aria-label="Back to updates" onclick="switchTab('updates')">‹</button><div class="chat-avatar" aria-hidden="true">S</div><div class="chat-contact"><strong id="private-chat-title">Private chat</strong><span><i></i> Secure player messaging</span></div><button id="video-call-button" class="chat-call" type="button" aria-label="Start video call">Video</button><button id="voice-call-button" class="chat-call" type="button" aria-label="Start voice call">Call</button></header>
+      <div class="private-chat-target"><label for="private-peer">Chat with</label><input id="private-peer" maxlength="20" pattern="[A-Za-z0-9_]{3,20}" placeholder="username"><button id="private-open" type="button">Open</button></div><div id="call-status" class="call-status" role="status"></div><div id="private-video-wrap" class="private-video-wrap" hidden><video id="remote-video" autoplay playsinline></video><video id="local-video" autoplay muted playsinline></video><button id="end-call" type="button">End call</button></div><div id="chat-messages" class="imessage-messages" aria-live="polite"><div class="chat-day">TODAY</div><div class="message-row incoming"><div class="message-bubble">Welcome to the arena. Share your rare pulls here.</div><time>Now</time></div></div>
       <form id="chat-form" class="imessage-composer"><button class="chat-plus" type="button" aria-label="Add attachment">+</button><input id="chat-input" maxlength="180" autocomplete="off" placeholder="iMessage" aria-label="Message"><button class="chat-send" type="submit" aria-label="Send message">↑</button></form>
     </div>
   </section>
@@ -1555,53 +1566,34 @@
     form.dataset.ready = 'true';
     const input = document.getElementById('chat-input');
     const messages = document.getElementById('chat-messages');
-    const chatName = localStorage.getItem('STICKMAN_CHAT_NAME') || `Player${Math.floor(Math.random() * 900 + 100)}`;
-    localStorage.setItem('STICKMAN_CHAT_NAME', chatName);
-    let lastChatId = 0;
-    const rendered = new Set();
+    const me = (localStorage.getItem('STICKMAN_CHAT_NAME') || `Player${Math.floor(Math.random() * 900 + 100)}`).replace(/[^A-Za-z0-9_]/g, '').slice(0, 20) || 'Player';
+    localStorage.setItem('STICKMAN_CHAT_NAME', me);
+    let peer = '';
+    let lastMessageId = 0;
+    let lastSignalId = 0;
+    let callId = '';
+    let connection = null;
+    let localStream = null;
+    const $ = (id) => document.getElementById(id);
+    const setStatus = (text) => { $('call-status').textContent = text; };
     const addMessage = (item) => {
-      if (!item || rendered.has(String(item.id))) return;
-      rendered.add(String(item.id));
       const row = document.createElement('div');
-      row.className = `message-row ${item.username === chatName ? 'outgoing' : 'incoming'}`;
-      const name = document.createElement('small');
-      name.className = 'chat-sender-name';
-      name.textContent = item.username === chatName ? 'You' : item.username;
-      const bubble = document.createElement('div');
-      bubble.className = 'message-bubble';
-      bubble.textContent = item.message;
-      const time = document.createElement('time');
-      time.textContent = new Date(item.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-      row.append(name, bubble, time);
-      messages.appendChild(row);
-      messages.scrollTop = messages.scrollHeight;
-      lastChatId = Math.max(lastChatId, Number(item.id));
+      row.className = `message-row ${item.sender === me ? 'outgoing' : 'incoming'}`;
+      const name = document.createElement('small'); name.className = 'chat-sender-name'; name.textContent = item.sender === me ? 'You' : item.sender;
+      const bubble = document.createElement('div'); bubble.className = 'message-bubble'; bubble.textContent = item.message;
+      const time = document.createElement('time'); time.textContent = new Date(item.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+      row.append(name, bubble, time); messages.appendChild(row); messages.scrollTop = messages.scrollHeight;
     };
-    const pollChat = async () => {
-      try {
-        const response = await fetch(`/api/account?resource=chat&after=${lastChatId}`, { cache: 'no-store' });
-        if (!response.ok) return;
-        const data = await response.json();
-        (data.messages || []).forEach(addMessage);
-      } catch (error) { console.log('[v0] group chat polling failed:', error.message); }
-    };
-    form.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      if (event.nativeEvent?.isComposing || event.keyCode === 229) return;
-      const text = input.value.trim();
-      if (!text) return;
-      input.disabled = true;
-      try {
-        const response = await fetch('/api/account', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'chat-message', username: chatName, message: text }) });
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(data.error || 'Could not send message.');
-        input.value = '';
-        addMessage(data.message);
-      } catch (error) { input.setCustomValidity(error.message); input.reportValidity(); input.setCustomValidity(''); }
-      finally { input.disabled = false; input.focus(); }
-    });
-    pollChat();
-    setInterval(pollChat, 2000);
+    const pollMessages = async () => { if (!peer) return; try { const response = await fetch(`/api/account?resource=private-chat&viewer=${encodeURIComponent(me)}&peer=${encodeURIComponent(peer)}&after=${lastMessageId}`, { cache: 'no-store' }); if (!response.ok) return; const data = await response.json(); (data.messages || []).forEach((item) => { addMessage(item); lastMessageId = Math.max(lastMessageId, Number(item.id)); }); } catch (error) { console.log('[v0] private chat polling failed:', error.message); } };
+    const sendSignal = (kind, payload) => fetch('/api/account', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'call-signal', sender: me, recipient: peer, callId, kind, payload }) });
+    const pollSignals = async () => { if (!peer || !callId) return; try { const response = await fetch(`/api/account?resource=call-signals&recipient=${encodeURIComponent(me)}&callId=${encodeURIComponent(callId)}&after=${lastSignalId}`, { cache: 'no-store' }); if (!response.ok) return; const data = await response.json(); for (const signal of data.signals || []) { lastSignalId = Math.max(lastSignalId, Number(signal.id)); if (signal.kind === 'offer' && !connection) await acceptCall(signal); if (signal.kind === 'answer' && connection) await connection.setRemoteDescription(signal.payload); if (signal.kind === 'candidate' && connection && signal.payload) await connection.addIceCandidate(signal.payload); if (signal.kind === 'hangup') endCall(false); } } catch (error) { console.log('[v0] call signaling failed:', error.message); } };
+    const createConnection = () => { connection = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }); connection.onicecandidate = (event) => { if (event.candidate) sendSignal('candidate', event.candidate.toJSON()); }; connection.ontrack = (event) => { $('remote-video').srcObject = event.streams[0]; }; connection.onconnectionstatechange = () => { if (['failed', 'disconnected'].includes(connection.connectionState)) setStatus('Call connection lost.'); }; return connection; };
+    const startCall = async (video) => { if (!peer) return setStatus('Enter a username first.'); try { localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video }); $('local-video').srcObject = localStream; $('private-video-wrap').hidden = false; callId = `${me}-${peer}-${Date.now()}`; lastSignalId = 0; createConnection(); localStream.getTracks().forEach((track) => connection.addTrack(track, localStream)); const offer = await connection.createOffer(); await connection.setLocalDescription(offer); await sendSignal('offer', offer); setStatus(video ? 'Calling with video…' : 'Calling…'); } catch (error) { setStatus(error.name === 'NotAllowedError' ? 'Camera or microphone permission was denied.' : 'Unable to start the call.'); } };
+    const acceptCall = async (signal) => { callId = signal.call_id; createConnection(); const video = await navigator.mediaDevices.getUserMedia({ audio: true, video: true }); localStream = video; $('local-video').srcObject = video; $('private-video-wrap').hidden = false; video.getTracks().forEach((track) => connection.addTrack(track, video)); await connection.setRemoteDescription(signal.payload); const answer = await connection.createAnswer(); await connection.setLocalDescription(answer); await sendSignal('answer', answer); setStatus('Connected.'); };
+    const endCall = (notify = true) => { if (notify && peer && callId) sendSignal('hangup', {}); if (connection) connection.close(); if (localStream) localStream.getTracks().forEach((track) => track.stop()); connection = null; localStream = null; $('remote-video').srcObject = null; $('local-video').srcObject = null; $('private-video-wrap').hidden = true; setStatus('Call ended.'); };
+    $('private-open').onclick = () => { peer = $('private-peer').value.trim().toLowerCase(); if (!/^[a-z0-9_]{3,20}$/.test(peer) || peer === me) return setStatus('Enter another valid username.'); $('private-chat-title').textContent = `Chat with ${peer}`; messages.querySelectorAll('.message-row:not(.incoming)').forEach((el) => el.remove()); lastMessageId = 0; setStatus(`Private chat as ${me}`); pollMessages(); };
+    form.addEventListener('submit', async (event) => { event.preventDefault(); if (event.nativeEvent?.isComposing || event.keyCode === 229) return; const text = input.value.trim(); if (!text || !peer) return setStatus('Open a private chat first.'); input.disabled = true; try { const response = await fetch('/api/account', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'private-message', sender: me, recipient: peer, message: text }) }); const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || 'Could not send message.'); input.value = ''; addMessage(data.message); } catch (error) { setStatus(error.message); } finally { input.disabled = false; input.focus(); } });
+    $('video-call-button').onclick = () => startCall(true); $('voice-call-button').onclick = () => startCall(false); $('end-call').onclick = () => endCall(); setInterval(() => { pollMessages(); pollSignals(); }, 2000);
   }
 
   function switchTab(tabId) {

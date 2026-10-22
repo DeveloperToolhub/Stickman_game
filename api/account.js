@@ -2,7 +2,7 @@
 //   POST /api/account { action: "create", username, password }  -> { words }
 //   POST /api/account { action: "login",  username, password, words } -> { token, username }
 const { generateSecretWords, generateRecoveryCode, normalizeWords, hashSecret, checkSecret, signSession, verifySession } = require('../lib/auth');
-const { getUser, createUser, updateUser, listUsers, createAdminMessage, listActiveMessages, createAdminMedia, listActiveMedia, grantCoins, grantSecret, listWorldState, setWorldBackground, createChatMessage, listChatMessages } = require('../lib/neon-storage');
+const { getUser, createUser, updateUser, listUsers, createAdminMessage, listActiveMessages, createAdminMedia, listActiveMedia, grantCoins, grantSecret, listWorldState, setWorldBackground, createChatMessage, listChatMessages, createPrivateMessage, listPrivateMessages, createCallSignal, listCallSignals } = require('../lib/neon-storage');
 
 const USERNAME_RE = /^[A-Za-z0-9_]{3,20}$/;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -43,6 +43,18 @@ module.exports = async (req, res) => {
     if (String(req.query?.resource || '') === 'media') return res.json({ media: await listActiveMedia() });
     if (String(req.query?.resource || '') === 'world') return res.json({ world: await listWorldState() });
     if (String(req.query?.resource || '') === 'chat') return res.json({ messages: await listChatMessages(Math.max(0, Number(req.query?.after || 0))) });
+    if (String(req.query?.resource || '') === 'private-chat') {
+      const viewer = String(req.query.viewer || '').trim();
+      const peer = String(req.query.peer || '').trim();
+      if (!USERNAME_RE.test(viewer) || !USERNAME_RE.test(peer)) return res.status(400).json({ error: 'Valid users are required.' });
+      return res.json({ messages: await listPrivateMessages(viewer, peer, Math.max(0, Number(req.query?.after || 0))) });
+    }
+    if (String(req.query?.resource || '') === 'call-signals') {
+      const recipient = String(req.query.recipient || '').trim();
+      const callId = String(req.query.callId || '').trim();
+      if (!USERNAME_RE.test(recipient) || !callId) return res.status(400).json({ error: 'Call details are required.' });
+      return res.json({ signals: await listCallSignals(recipient, callId, Math.max(0, Number(req.query?.after || 0))) });
+    }
     const auth = String(req.headers.authorization || '');
     const username = auth.startsWith('Bearer ') ? verifySession(auth.slice(7)) : null;
     const user = username && await getUser(username);
@@ -89,6 +101,25 @@ module.exports = async (req, res) => {
       const message = String(body.message || '').trim().slice(0, 180);
       if (!/^[A-Za-z0-9 _-]{1,20}$/.test(chatUsername) || !message) return res.status(400).json({ error: 'Enter a valid name and message.' });
       return res.json({ message: await createChatMessage(chatUsername, message) });
+    }
+
+    if (body.action === 'private-message') {
+      const sender = String(body.sender || '').trim().toLowerCase();
+      const recipient = String(body.recipient || '').trim().toLowerCase();
+      const message = String(body.message || '').trim().slice(0, 500);
+      if (!USERNAME_RE.test(sender) || !USERNAME_RE.test(recipient) || !message) return res.status(400).json({ error: 'Valid users and a message are required.' });
+      if (!await getUser(recipient)) return res.status(404).json({ error: 'User not found.' });
+      return res.json({ message: await createPrivateMessage(sender, recipient, message) });
+    }
+
+    if (body.action === 'call-signal') {
+      const sender = String(body.sender || '').trim().toLowerCase();
+      const recipient = String(body.recipient || '').trim().toLowerCase();
+      const callId = String(body.callId || '').trim().slice(0, 80);
+      const kind = String(body.kind || '').trim();
+      const payload = body.payload && typeof body.payload === 'object' ? body.payload : {};
+      if (!USERNAME_RE.test(sender) || !USERNAME_RE.test(recipient) || !callId || !['offer', 'answer', 'candidate', 'hangup'].includes(kind)) return res.status(400).json({ error: 'Invalid call signal.' });
+      return res.json({ signal: await createCallSignal(callId, sender, recipient, kind, payload) });
     }
 
     if (body.action === 'broadcast-message') {
