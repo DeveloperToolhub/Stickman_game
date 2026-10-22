@@ -277,8 +277,22 @@
         ::-webkit-scrollbar-thumb:hover {
             background: rgba(99, 102, 241, 0.7);
         }
-    </style>
-</head>
+  /* ===== Liquid glass game shell ===== */
+  :root { --glass-bg:rgba(15,23,42,.58); --glass-strong:rgba(30,41,59,.72); --glass-line:rgba(255,255,255,.16); --glass-highlight:rgba(255,255,255,.22); --accent:#67e8f9; --accent-2:#c4b5fd; }
+  body { background:radial-gradient(900px 500px at 12% -10%,rgba(34,211,238,.14),transparent 60%),radial-gradient(800px 500px at 92% 12%,rgba(168,85,247,.16),transparent 58%),#050816 !important; color:#e5e7eb; }
+  body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index:-1; background:linear-gradient(120deg,rgba(255,255,255,.03),transparent 40%,rgba(125,211,252,.04)); }
+  header.sticky { background:rgba(15,23,42,.62) !important; border-color:var(--glass-line) !important; box-shadow:0 16px 45px rgba(0,0,0,.26),inset 0 1px var(--glass-highlight); backdrop-filter:blur(24px) saturate(160%); }
+  #main-layout { max-width:1440px !important; gap:24px !important; }
+  #main-layout > nav { position:sticky; top:92px; z-index:20; max-width:none !important; justify-content:flex-start; overflow:auto; background:var(--glass-bg) !important; border:1px solid var(--glass-line) !important; box-shadow:0 16px 36px rgba(0,0,0,.22),inset 0 1px var(--glass-highlight); backdrop-filter:blur(22px) saturate(150%); }
+  .nav-tab { min-width:max-content; color:#94a3b8 !important; border:1px solid transparent; }
+  .nav-tab.active { color:#ecfeff !important; background:linear-gradient(135deg,rgba(34,211,238,.25),rgba(139,92,246,.28)) !important; border-color:rgba(125,211,252,.38) !important; box-shadow:0 8px 22px rgba(34,211,238,.12),inset 0 1px rgba(255,255,255,.2); }
+  .glass-panel, .pack-card, #view-codes > div, #view-shop > div, #view-training > div, #view-forge > div, #view-album > div { background:linear-gradient(145deg,rgba(30,41,59,.68),rgba(15,23,42,.5)) !important; border-color:var(--glass-line) !important; box-shadow:0 18px 45px rgba(0,0,0,.2),inset 0 1px rgba(255,255,255,.12); backdrop-filter:blur(20px) saturate(145%); }
+  .pack-card { transition:transform .22s ease, border-color .22s ease, box-shadow .22s ease; }
+  .pack-card:hover { transform:translateY(-4px); border-color:rgba(125,211,252,.5) !important; box-shadow:0 24px 50px rgba(0,0,0,.3),0 0 26px rgba(34,211,238,.1); }
+  #cloud-bar, #settings-btn { border-color:var(--glass-line) !important; background:var(--glass-bg) !important; backdrop-filter:blur(20px) saturate(150%); }
+  @media (max-width:760px) { header.sticky .max-w-7xl { flex-wrap:wrap; gap:10px; } #main-layout > nav { position:static; } #main-layout { padding-inline:12px !important; } }
+  </style>
+  </head>
 <body class="min-h-screen flex flex-col justify-between overflow-x-hidden">
 
     <!-- TOP HEADER / NAV BAR -->
