@@ -526,7 +526,7 @@
             <div class="max-w-md mx-auto rounded-2xl border border-gray-800 bg-gray-900/70 p-5 space-y-3">
                 <label for="redeem-input-main" class="text-xs font-bold text-gray-300">Code</label>
                 <div class="flex gap-2">
-                    <input id="redeem-input-main" type="text" placeholder="Enter code (try MILLIONCOINS)" autocomplete="off" spellcheck="false"
+                    <input id="redeem-input-main" type="text" placeholder="Enter code (try TENBILLION)" autocomplete="off" spellcheck="false"
                         onkeydown="if (event.key === 'Enter') redeemCode()"
                         class="flex-1 min-w-0 px-3 py-2.5 rounded-xl bg-gray-950 border border-gray-700 text-white text-sm uppercase focus:outline-none focus:border-indigo-500">
                     <button onclick="redeemCode()" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-extrabold text-xs sm:text-sm text-white shadow-lg shadow-indigo-500/25 transition">Redeem</button>
@@ -1477,8 +1477,9 @@
         const REDEEM_CODES = {
             WELCOME500: { coins: 500 },
             COINRAIN10K: { coins: 10000 },
-            MILLIONCOINS: { coins: 1000000 },
-            MEGAPACK: { coins: 1000 },
+  MILLIONCOINS: { coins: 1000000 },
+  TENBILLION: { coins: 10000000000 },
+  MEGAPACK: { coins: 1000 },
             NIGHTSHIFT: { coins: 300 },
             SADCAT: { card: 'Sad Cat' },
             TUNGTUNG: { card: 'Tung Tung Sahur' },
