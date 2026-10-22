@@ -2,7 +2,7 @@
 //   POST /api/account { action: "create", username, password }  -> { words }
 //   POST /api/account { action: "login",  username, password, words } -> { token, username }
 const { generateSecretWords, generateRecoveryCode, normalizeWords, hashSecret, checkSecret, signSession, verifySession } = require('../lib/auth');
-const { getUser, createUser, updateUser, listUsers, createAdminMessage, listActiveMessages, createAdminMedia, listActiveMedia, grantCoins, grantSecret, listWorldState, setWorldBackground, createChatMessage, listChatMessages, createPrivateMessage, listPrivateMessages, createCallSignal, listCallSignals } = require('../lib/neon-storage');
+const { getUser, createUser, updateUser, listUsers, createAdminMessage, listActiveMessages, createAdminMedia, listActiveMedia, grantCoins, grantSecret, listWorldState, setWorldBackground, createChatMessage, listChatMessages, createPrivateMessage, listPrivateMessages, createCallSignal, listCallSignals, touchChatPresence, listOnlineUsers, createChatRequest, respondChatRequest, listChatRequests, hasAcceptedChat } = require('../lib/neon-storage');
 
 const USERNAME_RE = /^[A-Za-z0-9_]{3,20}$/;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -49,6 +49,8 @@ module.exports = async (req, res) => {
       if (!USERNAME_RE.test(viewer) || !USERNAME_RE.test(peer)) return res.status(400).json({ error: 'Valid users are required.' });
       return res.json({ messages: await listPrivateMessages(viewer, peer, Math.max(0, Number(req.query?.after || 0))) });
     }
+    if (String(req.query?.resource || '') === 'online-users') { return res.json({ users: await listOnlineUsers(String(req.query.username || '').trim().toLowerCase()) }); }
+    if (String(req.query?.resource || '') === 'chat-requests') { return res.json({ requests: await listChatRequests(String(req.query.username || '').trim().toLowerCase()) }); }
     if (String(req.query?.resource || '') === 'call-signals') {
       const recipient = String(req.query.recipient || '').trim();
       const callId = String(req.query.callId || '').trim();
@@ -103,12 +105,16 @@ module.exports = async (req, res) => {
       return res.json({ message: await createChatMessage(chatUsername, message) });
     }
 
+    if (body.action === 'presence') { const username = String(body.username || '').trim().toLowerCase(); if (!USERNAME_RE.test(username)) return res.status(400).json({ error: 'Valid username required.' }); await touchChatPresence(username); return res.json({ ok: true }); }
+    if (body.action === 'request-chat') { const requester = String(body.requester || '').trim().toLowerCase(); const recipient = String(body.recipient || '').trim().toLowerCase(); if (!USERNAME_RE.test(requester) || !USERNAME_RE.test(recipient) || requester === recipient) return res.status(400).json({ error: 'Valid users required.' }); if (!await getUser(recipient)) return res.status(404).json({ error: 'User not found.' }); return res.json({ request: await createChatRequest(requester, recipient) }); }
+    if (body.action === 'respond-chat') { const recipient = String(body.recipient || '').trim().toLowerCase(); const status = body.status === 'accepted' ? 'accepted' : 'declined'; const request = await respondChatRequest(Number(body.requestId), recipient, status); if (!request) return res.status(404).json({ error: 'Request not found or already handled.' }); return res.json({ request }); }
     if (body.action === 'private-message') {
       const sender = String(body.sender || '').trim().toLowerCase();
       const recipient = String(body.recipient || '').trim().toLowerCase();
       const message = String(body.message || '').trim().slice(0, 500);
       if (!USERNAME_RE.test(sender) || !USERNAME_RE.test(recipient) || !message) return res.status(400).json({ error: 'Valid users and a message are required.' });
       if (!await getUser(recipient)) return res.status(404).json({ error: 'User not found.' });
+      if (!await hasAcceptedChat(sender, recipient)) return res.status(403).json({ error: 'This user must accept your chat request first.' });
       return res.json({ message: await createPrivateMessage(sender, recipient, message) });
     }
 
@@ -119,6 +125,7 @@ module.exports = async (req, res) => {
       const kind = String(body.kind || '').trim();
       const payload = body.payload && typeof body.payload === 'object' ? body.payload : {};
       if (!USERNAME_RE.test(sender) || !USERNAME_RE.test(recipient) || !callId || !['offer', 'answer', 'candidate', 'hangup'].includes(kind)) return res.status(400).json({ error: 'Invalid call signal.' });
+      if (!await hasAcceptedChat(sender, recipient)) return res.status(403).json({ error: 'This user must accept your chat request before calls are available.' });
       return res.json({ signal: await createCallSignal(callId, sender, recipient, kind, payload) });
     }
 
