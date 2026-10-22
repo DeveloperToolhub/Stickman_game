@@ -358,7 +358,9 @@
   @keyframes confettiFloat { from { transform:translateY(10px) rotate(-3deg); } to { transform:translateY(-10px) rotate(3deg); } }
         }
         .chat-view { max-width: 760px; margin: 0 auto; }
-.imessage-shell { overflow: hidden; border: 1px solid rgba(148,163,184,.22); border-radius: 24px; background:linear-gradient(145deg,#111827,#080b14); box-shadow:0 18px 50px rgba(0,0,0,.38); color:#e5e7eb; }
+.imessage-shell { overflow:hidden; border:1px solid rgba(255,255,255,.24); border-radius:28px; background:linear-gradient(145deg,rgba(30,41,59,.68),rgba(2,6,23,.78)); box-shadow:0 24px 70px rgba(0,0,0,.48), inset 0 1px rgba(255,255,255,.18); color:#e5e7eb; backdrop-filter:blur(28px) saturate(150%); -webkit-backdrop-filter:blur(28px) saturate(150%); }
+  .imessage-shell::before { content:''; display:block; height:1px; background:linear-gradient(90deg,transparent,rgba(125,211,252,.9),rgba(216,180,254,.8),transparent); }
+  .chat-delete { margin-left:6px; border:0; border-radius:7px; padding:3px 6px; color:#fca5a5; background:rgba(127,29,29,.28); font-size:9px; cursor:pointer; }
   .imessage-header { display:flex; align-items:center; gap:10px; padding:12px 16px; background:rgba(15,23,42,.92); border-bottom:1px solid rgba(148,163,184,.2); }
         .chat-back, .chat-info, .chat-plus, .chat-send, .chat-nickname { border:0; cursor:pointer; }
   .chat-nickname { order:5; max-width:82px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 8px; border:1px solid rgba(0,122,255,.25); border-radius:10px; color:#007aff; background:#eef5ff; font-size:10px; font-weight:800; }
@@ -1635,7 +1637,7 @@ function setupPublicChat(form) {
   const input = document.getElementById('chat-input');
   const messages = document.getElementById('chat-messages');
   const nicknameKey = 'STICKMAN_CHAT_NICKNAME';
-  const blockedWords = ['slur','spamword','badword'];
+  const blockedWords = ['slur','spamword','badword','fuck','shit','bitch','asshole','dick','cunt','nigger','faggot'];
   const cleanChatText = (value) => value.split(/(\s+)/).map((part) => blockedWords.some((word) => part.toLowerCase().includes(word)) ? '•••' : part).join('');
   const me = (localStorage.getItem('STICKMAN_CHAT_NAME') || `Player${Math.floor(Math.random() * 900 + 100)}`).replace(/[^A-Za-z0-9_]/g, '').slice(0, 20) || 'Player';
   let nickname = localStorage.getItem(nicknameKey) || me;
@@ -1701,7 +1703,7 @@ const announcePresence = () => fetch('/api/account', { method: 'POST', headers: 
       const name = document.createElement('small'); name.className = 'chat-sender-name'; name.textContent = item.sender === me ? 'You' : item.sender;
       const bubble = document.createElement('div'); bubble.className = 'message-bubble'; bubble.textContent = cleanChatText(item.message);
       const time = document.createElement('time'); time.textContent = new Date(item.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-      row.append(name, bubble, time); messages.appendChild(row); messages.scrollTop = messages.scrollHeight;
+if (item.username === me) { const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'chat-delete'; remove.textContent = 'Delete'; remove.setAttribute('aria-label', 'Delete message'); remove.onclick = async () => { const response = await fetch('/api/account', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ action:'delete-chat-message', messageId:Number(item.id), username:me }) }); if (response.ok) row.remove(); }; row.append(remove); } row.append(name, bubble, time); messages.appendChild(row); messages.scrollTop = messages.scrollHeight;
     };
     const pollMessages = async () => { if (!peer) return; try { const response = await fetch(`/api/account?resource=private-chat&viewer=${encodeURIComponent(me)}&peer=${encodeURIComponent(peer)}&after=${lastMessageId}`, { cache: 'no-store' }); if (!response.ok) return; const data = await response.json(); (data.messages || []).forEach((item) => { addMessage(item); lastMessageId = Math.max(lastMessageId, Number(item.id)); }); } catch (error) { console.log('[v0] private chat polling failed:', error.message); } };
     const sendSignal = (kind, payload) => fetch('/api/account', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'call-signal', sender: me, recipient: peer, callId, kind, payload }) });

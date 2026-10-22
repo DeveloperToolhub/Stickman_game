@@ -2,7 +2,7 @@
 //   POST /api/account { action: "create", username, password }  -> { words }
 //   POST /api/account { action: "login",  username, password, words } -> { token, username }
 const { generateSecretWords, generateRecoveryCode, normalizeWords, hashSecret, checkSecret, signSession, verifySession } = require('../lib/auth');
-const { getUser, createUser, updateUser, listUsers, createAdminMessage, listActiveMessages, createAdminMedia, listActiveMedia, grantCoins, grantSecret, listWorldState, setWorldBackground, createChatMessage, listChatMessages, createPrivateMessage, listPrivateMessages, createCallSignal, listCallSignals, touchChatPresence, listOnlineUsers, createChatRequest, respondChatRequest, listChatRequests, hasAcceptedChat } = require('../lib/neon-storage');
+const { getUser, createUser, updateUser, listUsers, createAdminMessage, listActiveMessages, createAdminMedia, listActiveMedia, grantCoins, grantSecret, listWorldState, setWorldBackground, createChatMessage, listChatMessages, deleteChatMessage, createPrivateMessage, listPrivateMessages, createCallSignal, listCallSignals, touchChatPresence, listOnlineUsers, createChatRequest, respondChatRequest, listChatRequests, hasAcceptedChat } = require('../lib/neon-storage');
 
 const USERNAME_RE = /^[A-Za-z0-9_]{3,20}$/;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -108,7 +108,8 @@ const chatUsername = String(body.username || '').trim().slice(0, 20) || 'Player'
     return res.json({ message: { ...(await createChatMessage(chatUsername, message)), nickname } });
     }
 
-    if (body.action === 'presence') { const username = String(body.username || '').trim().toLowerCase(); if (!USERNAME_RE.test(username)) return res.status(400).json({ error: 'Valid username required.' }); await touchChatPresence(username); return res.json({ ok: true }); }
+    if (body.action === 'delete-chat-message') { const username = String(body.username || '').trim(); const messageId = Number(body.messageId); if (!USERNAME_RE.test(username) || !Number.isInteger(messageId) || messageId < 1) return res.status(400).json({ error: 'Invalid message.' }); const deleted = await deleteChatMessage(messageId, username); return res.json({ deleted }); }
+  if (body.action === 'presence') { const username = String(body.username || '').trim().toLowerCase(); if (!USERNAME_RE.test(username)) return res.status(400).json({ error: 'Valid username required.' }); await touchChatPresence(username); return res.json({ ok: true }); }
     if (body.action === 'request-chat') { const requester = String(body.requester || '').trim().toLowerCase(); const recipient = String(body.recipient || '').trim().toLowerCase(); if (!USERNAME_RE.test(requester) || !USERNAME_RE.test(recipient) || requester === recipient) return res.status(400).json({ error: 'Valid users required.' }); if (!await getUser(recipient)) return res.status(404).json({ error: 'User not found.' }); return res.json({ request: await createChatRequest(requester, recipient) }); }
     if (body.action === 'respond-chat') { const recipient = String(body.recipient || '').trim().toLowerCase(); const status = body.status === 'accepted' ? 'accepted' : 'declined'; const request = await respondChatRequest(Number(body.requestId), recipient, status); if (!request) return res.status(404).json({ error: 'Request not found or already handled.' }); return res.json({ request }); }
     if (body.action === 'private-message') {
