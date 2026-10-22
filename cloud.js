@@ -2,6 +2,18 @@
 // Loaded after the game script (see index.html).
 
 (function () {
+  const adminGlassStyle = document.createElement('style');
+  adminGlassStyle.textContent = `
+    #acct-modal { background:rgba(2,6,23,.72) !important; backdrop-filter:blur(22px) saturate(150%); -webkit-backdrop-filter:blur(22px) saturate(150%); }
+    #acct-modal > div { background:linear-gradient(145deg,rgba(30,41,59,.82),rgba(2,6,23,.88)) !important; border:1px solid rgba(255,255,255,.22) !important; border-radius:28px !important; box-shadow:0 30px 100px rgba(0,0,0,.6), inset 0 1px rgba(255,255,255,.2) !important; backdrop-filter:blur(28px) saturate(160%); }
+    #acct-body > div:first-child { color:#e0f2fe !important; }
+    #acct-body section, #acct-body [style*="background:#111827"], #acct-body [style*="background: #111827"] { background:linear-gradient(145deg,rgba(51,65,85,.42),rgba(15,23,42,.56)) !important; border-color:rgba(148,163,184,.22) !important; border-radius:18px !important; box-shadow:inset 0 1px rgba(255,255,255,.1),0 12px 30px rgba(0,0,0,.16); }
+    #acct-body input, #acct-body textarea, #acct-body select { color:#e0f2fe !important; background:rgba(15,23,42,.68) !important; border:1px solid rgba(125,211,252,.24) !important; border-radius:12px !important; outline:none; }
+    #acct-body button, #acct-close { border:1px solid rgba(255,255,255,.16) !important; border-radius:11px !important; box-shadow:inset 0 1px rgba(255,255,255,.18),0 8px 20px rgba(0,0,0,.18); transition:transform .18s ease,filter .18s ease; }
+    #acct-body button:hover, #acct-close:hover { transform:translateY(-1px); filter:brightness(1.12); }
+    #cloud-bar { background:rgba(15,23,42,.72) !important; border:1px solid rgba(255,255,255,.2) !important; border-radius:16px !important; box-shadow:0 14px 35px rgba(0,0,0,.28),inset 0 1px rgba(255,255,255,.18); backdrop-filter:blur(18px) saturate(150%); }
+  `;
+  document.head.appendChild(adminGlassStyle);
   // Paste your Google OAuth Web client ID here. It is not secret.
   let GOOGLE_CLIENT_ID = '';
   const TOKEN_KEY = 'stickman_token';
