@@ -376,9 +376,10 @@
   .online-user button, .chat-request button { border:0; border-radius:8px; padding:4px 6px; color:#fff; background:#007aff; font-size:10px; font-weight:700; cursor:pointer; }
   .chat-request { margin-top:7px; width:100%; justify-content:space-between; }
   .chat-request .decline { background:#8e8e93; }
-  .chat-call { background:#34c759; padding:6px 8px; }
+  .chat-call { display:inline-flex; align-items:center; gap:5px; border:1px solid rgba(255,255,255,.12); border-radius:10px; padding:7px 9px; color:#f8fafc; background:rgba(255,255,255,.08); font-size:10px; font-weight:800; letter-spacing:.02em; cursor:pointer; transition:transform .2s,background .2s; }
+  .chat-call:hover { transform:translateY(-1px); background:rgba(56,189,248,.2); }
   .call-status { min-height:0; padding:0 12px; color:#6d6d72; font-size:11px; background:#fff; }
-  .incoming-call-alert { position:fixed; inset:0; z-index:100; display:flex; flex-direction:column; align-items:center; justify-content:space-between; padding:clamp(70px,16vh,130px) 24px 56px; color:#fff; text-align:center; background:linear-gradient(160deg,rgba(122,190,232,.9),rgba(22,103,137,.92) 48%,rgba(8,48,70,.96)),radial-gradient(circle at 25% 30%,#b5e4ee,transparent 35%); font-weight:800; }
+  .incoming-call-alert { position:fixed; inset:0; z-index:100; display:flex; flex-direction:column; align-items:center; justify-content:space-between; padding:58px 24px 42px; color:#f8fafc; text-align:center; background:radial-gradient(circle at 50% 18%,rgba(34,211,238,.28),transparent 28%),linear-gradient(160deg,#0f2435,#07111f 62%,#020617); font-weight:800; }
   .incoming-call-alert::before { content:''; position:absolute; inset:0; z-index:-1; backdrop-filter:blur(26px); background:radial-gradient(circle at 50% 18%,rgba(255,255,255,.22),transparent 24%),linear-gradient(180deg,rgba(18,72,100,.12),rgba(4,24,36,.36)); }
   .incoming-call-content { display:flex; flex-direction:column; align-items:center; gap:10px; }
   .incoming-call-avatar { width:92px; height:92px; display:grid; place-items:center; border-radius:50%; background:linear-gradient(145deg,#65d5ce,#087ca0); border:2px solid rgba(255,255,255,.65); box-shadow:0 12px 30px rgba(0,0,0,.2); font-size:38px; }
@@ -389,15 +390,21 @@
   .incoming-call-action { display:flex; flex-direction:column; align-items:center; gap:9px; color:#fff; font-size:12px; font-weight:700; }
   .incoming-call-action button { width:66px; height:66px; border:0; border-radius:50%; color:#fff; font-size:26px; cursor:pointer; box-shadow:0 8px 18px rgba(0,0,0,.22); }
   .incoming-call-action.decline button { background:#ff3b30; } .incoming-call-action.answer button { background:#34c759; }
-  .active-call-screen { position:fixed; inset:0; z-index:99; display:flex; flex-direction:column; align-items:center; padding:clamp(55px,12vh,100px) 24px 55px; color:#fff; background:linear-gradient(160deg,#703b3c,#6e3a4b 48%,#171c36); text-align:center; }
+  .active-call-screen { position:fixed; inset:0; z-index:99; display:flex; flex-direction:column; align-items:center; padding:28px 20px 24px; color:#f8fafc; background:radial-gradient(circle at 50% -10%,rgba(56,189,248,.28),transparent 38%),linear-gradient(160deg,#111827,#090b14 65%,#020617); text-align:center; }
+  .active-call-screen::before { content:'STICKMAN LIVE'; position:absolute; top:22px; left:22px; color:#67e8f9; font-size:10px; font-weight:900; letter-spacing:.2em; }
+  .active-call-top { width:min(94vw,700px); display:flex; align-items:center; justify-content:center; gap:10px; padding-top:18px; }
+  .active-call-top::before { content:'●'; color:#34d399; font-size:10px; }
   .active-call-screen .active-call-name { font-size:clamp(28px,8vw,42px); font-weight:800; }
-  .active-call-video { width:min(92vw,560px); max-height:58vh; object-fit:cover; margin-top:28px; border-radius:26px; background:#090b14; box-shadow:0 18px 55px rgba(0,0,0,.3); }
+  .active-call-videos { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; width:min(94vw,700px); margin-top:28px; }
+  .active-call-video { width:100%; aspect-ratio:4/5; max-height:58vh; object-fit:cover; border:1px solid rgba(255,255,255,.16); border-radius:22px; background:#090b14; box-shadow:0 18px 55px rgba(0,0,0,.3); }
+  .active-call-video.local { transform:scaleX(-1); }
   .active-call-screen.has-remote-video .active-call-video { outline:2px solid rgba(255,255,255,.22); }
   .active-call-screen.has-remote-video::after { content:'Live video connected'; position:absolute; top:18px; right:18px; padding:6px 9px; border-radius:999px; background:rgba(52,199,89,.2); color:#b8f5c5; font-size:11px; font-weight:800; }
   .active-call-screen .active-call-time { margin-top:8px; font-size:13px; opacity:.75; }
-  .active-call-controls { display:flex; gap:18px; margin-top:auto; }
-  .active-call-controls button { width:58px; height:58px; border:1px solid rgba(255,255,255,.22); border-radius:50%; color:#fff; background:rgba(255,255,255,.17); cursor:pointer; }
-  .active-call-controls .end { background:#ff3b30; border:0; }
+  .active-call-controls { display:flex; align-items:center; gap:12px; margin-top:auto; padding:10px 14px; border:1px solid rgba(255,255,255,.12); border-radius:24px; background:rgba(15,23,42,.72); backdrop-filter:blur(18px); }
+  .active-call-controls button { min-width:68px; height:46px; border:1px solid rgba(255,255,255,.14); border-radius:14px; color:#e2e8f0; background:rgba(255,255,255,.09); font-size:11px; font-weight:800; cursor:pointer; }
+  .active-call-controls button:hover { background:rgba(255,255,255,.16); }
+  .active-call-controls .end { min-width:76px; color:#fff; background:#ef4444; border:0; }
   .private-video-wrap { position:relative; display:grid; grid-template-columns:1fr 110px; gap:8px; padding:10px; background:#111827; }
   .private-video-wrap video { width:100%; aspect-ratio:16/9; object-fit:cover; background:#000; border-radius:10px; }
   .private-video-wrap #local-video { align-self:end; }
@@ -483,7 +490,7 @@
   <!-- VIEW: CHAT -->
   <section id="view-chat" class="tab-view hidden chat-view">
     <div class="imessage-shell">
-      <header class="imessage-header"><button class="chat-back" type="button" aria-label="Back to updates" onclick="switchTab('updates')">‹</button><div class="chat-avatar" aria-hidden="true">S</div><div class="chat-contact"><strong>Stickman Community</strong><span><i></i> Public group chat</span></div><button id="video-call-button" class="chat-call" type="button" aria-label="Call everyone online">Video all</button><button id="voice-call-button" class="chat-call" type="button" aria-label="Call everyone online">Call all</button></header>
+      <header class="imessage-header"><button class="chat-back" type="button" aria-label="Back to updates" onclick="switchTab('updates')">‹</button><div class="chat-avatar" aria-hidden="true">S</div><div class="chat-contact"><strong>Stickman Community</strong><span><i></i> Public group chat</span></div><button id="video-call-button" class="chat-call" type="button" aria-label="Start community video room"><span aria-hidden="true">▣</span> Video room</button><button id="voice-call-button" class="chat-call" type="button" aria-label="Start community voice room"><span aria-hidden="true">◉</span> Voice room</button></header>
       <div class="online-users-panel"><div class="online-users-heading"><strong id="online-count">Online now</strong><button id="refresh-online" type="button">Refresh</button></div><div id="online-users" class="online-users-list"><span>Loading players…</span></div></div><div id="call-status" class="call-status" role="status"></div><div id="public-video-wrap" class="private-video-wrap" hidden><video id="public-remote-video" autoplay playsinline></video><video id="public-local-video" autoplay muted playsinline></video><button id="end-call" type="button">End call</button></div><div id="chat-messages" class="imessage-messages" aria-live="polite"><div class="chat-day">TODAY</div><div class="message-row incoming"><div class="message-bubble">Welcome to the arena. Share your rare pulls here.</div><time>Now</time></div></div>
       <form id="chat-form" class="imessage-composer"><button class="chat-plus" type="button" aria-label="Add attachment">+</button><input id="chat-input" maxlength="180" autocomplete="off" placeholder="iMessage" aria-label="Message"><button class="chat-send" type="submit" aria-label="Send message">↑</button></form>
     </div>
