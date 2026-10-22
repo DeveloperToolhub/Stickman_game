@@ -1,7 +1,9 @@
 // extras.js: settings menu, home menu music, and low performance mode.
 // Loaded after the game script and before cloud.js (see index.html).
 (function () {
-  const KEYS = { sound: 'stickman_sound', music: 'stickman_music', lowPerf: 'stickman_lowperf' };
+  const KEYS = { sound: 'stickman_sound', music: 'stickman_music', lowPerf: 'stickman_lowperf', darkMode: 'stickman_darkmode' };
+  let darkMode = localStorage.getItem(KEYS.darkMode) !== 'off';
+  document.documentElement.classList.toggle('light-mode', !darkMode);
   let soundOn = localStorage.getItem(KEYS.sound) !== 'off';
   let musicOn = localStorage.getItem(KEYS.music) !== 'off';
   window.lowPerf = localStorage.getItem(KEYS.lowPerf) === 'on';
@@ -100,6 +102,7 @@
       <h3 style="margin:0 0 8px;font-size:18px;color:#fff;">Settings</h3>
       ${row('Sound effects', 'sound-toggle', soundOn)}
       ${row('Home menu music', 'music-toggle', musicOn)}
+      ${row('Dark mode', 'darkmode-toggle', darkMode)}
       <div style="padding:8px 0;border-top:1px solid #1f2937;margin-top:6px;">
         <div style="font-size:12px;color:#9ca3af;margin-bottom:6px;">Play your own music (this visit only)</div>
         <input id="music-file" type="file" accept="audio/*" style="font-size:12px;width:100%;">
@@ -120,6 +123,12 @@
   document.getElementById('sound-toggle').onchange = e => {
     soundOn = e.target.checked;
     localStorage.setItem(KEYS.sound, soundOn ? 'on' : 'off');
+  };
+
+  document.getElementById('darkmode-toggle').onchange = e => {
+    darkMode = e.target.checked;
+    localStorage.setItem(KEYS.darkMode, darkMode ? 'on' : 'off');
+    document.documentElement.classList.toggle('light-mode', !darkMode);
   };
 
   document.getElementById('music-toggle').onchange = e => {

@@ -266,7 +266,12 @@
         html.low-perf .pack-shine::after,
         html.low-perf .secret-card,
         html.low-perf .secret-label { animation: none !important; }
-        html.low-perf .glass-panel, html.low-perf nav, html.low-perf #cloud-bar, html.low-perf #settings-btn {
+        html.light-mode body { background:#eef2ff !important; color:#172033 !important; }
+  html.light-mode .glass-panel, html.light-mode nav, html.light-mode #cloud-bar, html.light-mode #settings-btn { background:rgba(255,255,255,.82) !important; border-color:rgba(99,102,241,.18) !important; color:#172033 !important; }
+  html.light-mode .text-white { color:#172033 !important; }
+  html.light-mode .text-gray-400, html.light-mode .text-gray-500 { color:#64748b !important; }
+  html.light-mode .chat-view .imessage-shell { box-shadow:0 20px 55px rgba(30,41,59,.18); }
+  html.low-perf .glass-panel, html.low-perf nav, html.low-perf #cloud-bar, html.low-perf #settings-btn {
             -webkit-backdrop-filter: none !important;
             backdrop-filter: none !important;
             background: rgba(15, 23, 42, .96) !important;
@@ -378,6 +383,9 @@
   .chat-request .decline { background:#8e8e93; }
   .chat-call { display:inline-flex; align-items:center; gap:5px; border:1px solid rgba(255,255,255,.12); border-radius:10px; padding:7px 9px; color:#f8fafc; background:rgba(255,255,255,.08); font-size:10px; font-weight:800; letter-spacing:.02em; cursor:pointer; transition:transform .2s,background .2s; }
   .chat-call:hover { transform:translateY(-1px); background:rgba(56,189,248,.2); }
+  @media (max-width:640px) { .imessage-header { gap:4px; } .chat-contact { margin-left:0; text-align:left; } .chat-contact strong { font-size:12px; } .chat-call { padding:6px 7px; font-size:9px; } .chat-call span { display:none; } }
+  .chat-call#video-call-button { color:#67e8f9; border-color:rgba(34,211,238,.35); }
+  .chat-call#voice-call-button { color:#86efac; border-color:rgba(74,222,128,.3); }
   .call-status { min-height:0; padding:0 12px; color:#6d6d72; font-size:11px; background:#fff; }
   .incoming-call-alert { position:fixed; inset:0; z-index:100; display:flex; flex-direction:column; align-items:center; justify-content:space-between; padding:58px 24px 42px; color:#f8fafc; text-align:center; background:radial-gradient(circle at 50% 18%,rgba(34,211,238,.28),transparent 28%),linear-gradient(160deg,#0f2435,#07111f 62%,#020617); font-weight:800; }
   .incoming-call-alert::before { content:''; position:absolute; inset:0; z-index:-1; backdrop-filter:blur(26px); background:radial-gradient(circle at 50% 18%,rgba(255,255,255,.22),transparent 24%),linear-gradient(180deg,rgba(18,72,100,.12),rgba(4,24,36,.36)); }
