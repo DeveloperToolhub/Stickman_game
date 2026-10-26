@@ -545,7 +545,7 @@ function playSoundboardSound(sound) { const AudioCtx = window.AudioContext || wi
 
     // Restore a still-valid sign-in from an earlier visit
     const stored = localStorage.getItem(TOKEN_KEY);
-    if (stored && isFresh(stored)) await onToken(stored);
+    if (stored && isFresh(stored)) { let role = null; try { const session = await fetch('/api/account?resource=session', { headers:{ Authorization:'Bearer ' + stored }, cache:'no-store' }); if (session.ok) role = (await session.json()).role; } catch {} await onToken(stored, role); }
     else localStorage.removeItem(TOKEN_KEY);
   }
 
