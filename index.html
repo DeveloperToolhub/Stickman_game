@@ -437,8 +437,19 @@
   .private-video-wrap #end-call { position:absolute; right:12px; bottom:12px; background:#ff3b30; }
 
         @media (max-width:640px) { .chat-view { margin-inline:-4px; } .imessage-shell { border-radius:18px; } .imessage-messages { min-height:calc(100vh - 300px); max-height:none; } .message-row { max-width:86%; } }
-    </style>
-</head>
+  /* iOS-inspired liquid glass navigation and shell */
+  header.sticky { background:rgba(18,24,40,.58) !important; border-bottom:1px solid rgba(255,255,255,.2) !important; box-shadow:0 12px 36px rgba(0,0,0,.24), inset 0 1px rgba(255,255,255,.24); -webkit-backdrop-filter:blur(30px) saturate(180%); backdrop-filter:blur(30px) saturate(180%); }
+  #main-layout { max-width:1480px !important; gap:28px !important; }
+  #main-layout > nav { display:flex; flex-wrap:wrap; align-items:stretch; justify-content:center; gap:6px; max-width:100% !important; padding:8px !important; border:1px solid rgba(255,255,255,.2) !important; border-radius:26px !important; background:rgba(15,23,42,.54) !important; box-shadow:0 20px 48px rgba(0,0,0,.26),inset 0 1px rgba(255,255,255,.2); -webkit-backdrop-filter:blur(28px) saturate(180%); backdrop-filter:blur(28px) saturate(180%); }
+  .nav-tab { flex:0 1 auto !important; min-width:max-content; white-space:nowrap; padding:11px 16px !important; border:1px solid transparent; border-radius:16px !important; letter-spacing:-.01em; }
+  .nav-tab.active { background:linear-gradient(135deg,rgba(103,232,249,.24),rgba(196,181,253,.28)) !important; border-color:rgba(255,255,255,.3) !important; box-shadow:inset 0 1px rgba(255,255,255,.3),0 8px 24px rgba(34,211,238,.12); }
+  .nav-tab:hover:not(.active) { background:rgba(255,255,255,.09); border-color:rgba(255,255,255,.12); }
+  .glass-panel, .pack-card, #view-live-games > div { border-radius:26px !important; box-shadow:0 22px 55px rgba(0,0,0,.25), inset 0 1px rgba(255,255,255,.2) !important; }
+  button, input, textarea, select { -webkit-tap-highlight-color:transparent; }
+  @media (max-width:900px) { #main-layout > nav { justify-content:flex-start; flex-wrap:nowrap; overflow-x:auto; scroll-snap-type:x proximity; } .nav-tab { flex:0 0 auto !important; scroll-snap-align:start; } }
+  @media (max-width:640px) { .nav-tab { padding:10px 13px !important; font-size:11px !important; } #main-layout { padding-inline:12px !important; } }
+  </style>
+  </head>
 <body class="min-h-screen flex flex-col justify-between overflow-x-hidden">
 
     <!-- TOP HEADER / NAV BAR -->
