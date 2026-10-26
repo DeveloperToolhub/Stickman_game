@@ -105,7 +105,7 @@ const chatUsername = String(body.username || '').trim().slice(0, 20) || 'Player'
     const nickname = String(body.nickname || chatUsername).replace(/[^A-Za-z0-9 _-]/g, '').trim().slice(0, 20) || chatUsername;
     const message = String(body.message || '').normalize('NFKC').trim().slice(0, 180).replace(/[^\p{L}\p{N}\s]/gu, (char) => char).replace(/(s\W*l\W*u\W*r|f\W*u\W*c\W*k|s\W*h\W*i\W*t|b\W*i\W*t\W*c\W*h|a\W*s\W*s\W*h\W*o\W*l\W*e|d\W*i\W*c\W*k|c\W*u\W*n\W*t|n\W*i\W*g\W*g\W*e\W*r|f\W*a\W*g\W*g\W*o\W*t|spamword|badword)/giu, '•••');
     if (!/^[A-Za-z0-9 _-]{1,20}$/.test(chatUsername) || !message) return res.status(400).json({ error: 'Enter a valid name and message.' });
-    return res.json({ message: await createChatMessage(chatUsername, nickname, message) });
+    const createdMessage = await createChatMessage(chatUsername, nickname, message); if (!createdMessage) return res.status(429).json({ error: 'Spam detected. Your recent chat messages were deleted. Please slow down.' }); return res.json({ message: createdMessage });
     }
 
     if (body.action === 'delete-all-chat-messages') { const auth = String(req.headers.authorization || ''); const sessionUser = auth.startsWith('Bearer ') ? verifySession(auth.slice(7)) : null; const sender = sessionUser && await getUser(sessionUser); if (!sender || sender.role !== 'moderator') return res.status(403).json({ error: 'Moderator access required.' }); const deleted = await deleteAllChatMessages(); return res.json({ deleted }); }
