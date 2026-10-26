@@ -105,7 +105,7 @@ const chatUsername = String(body.username || '').trim().slice(0, 20) || 'Player'
     const nickname = String(body.nickname || chatUsername).replace(/[^A-Za-z0-9 _-]/g, '').trim().slice(0, 20) || chatUsername;
     const message = String(body.message || '').normalize('NFKC').trim().slice(0, 180).replace(/[^\p{L}\p{N}\s]/gu, (char) => char).replace(/(s\W*l\W*u\W*r|f\W*u\W*c\W*k|s\W*h\W*i\W*t|b\W*i\W*t\W*c\W*h|a\W*s\W*s\W*h\W*o\W*l\W*e|d\W*i\W*c\W*k|c\W*u\W*n\W*t|n\W*i\W*g\W*g\W*e\W*r|f\W*a\W*g\W*g\W*o\W*t|spamword|badword)/giu, '•••');
     if (!/^[A-Za-z0-9 _-]{1,20}$/.test(chatUsername) || !message) return res.status(400).json({ error: 'Enter a valid name and message.' });
-    return res.json({ message: { ...(await createChatMessage(chatUsername, message)), nickname } });
+    return res.json({ message: await createChatMessage(chatUsername, nickname, message) });
     }
 
     if (body.action === 'ai-moderator') { const message = String(body.message || '').trim().slice(0, 500); if (!message) return res.status(400).json({ error: 'Ask a moderation question.' }); const response = await fetch('https://ai-gateway.vercel.sh/v1/chat/completions', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ model:'alibaba/qwen-3-14b', messages:[{ role:'system', content:'You are a concise, safety-focused community chat moderator. Explain rules, identify harassment or profanity risks, and suggest respectful rewrites. Never reveal private data or help target users.' },{ role:'user', content:message }] }) }); if (!response.ok) return res.status(502).json({ error:'AI moderator unavailable.' }); const data = await response.json(); return res.json({ reply: data.choices?.[0]?.message?.content || 'The moderator could not answer.' }); }
