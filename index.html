@@ -456,6 +456,27 @@
   .imessage-composer { margin:12px 14px 14px !important; padding:6px !important; border:1px solid rgba(255,255,255,.2) !important; border-radius:22px !important; background:rgba(255,255,255,.08) !important; box-shadow:inset 0 1px rgba(255,255,255,.18),0 14px 30px rgba(0,0,0,.2); }
   .imessage-composer input { color:#f8fafc !important; background:transparent !important; padding:10px 8px !important; }
   .chat-send { width:36px !important; height:36px !important; border-radius:50% !important; background:linear-gradient(135deg,#67e8f9,#818cf8) !important; color:#0f172a !important; box-shadow:inset 0 1px rgba(255,255,255,.5),0 6px 16px rgba(34,211,238,.24); }
+  /* Mobile play mode */
+  html.phone-mode body { min-height:100svh; padding-bottom:env(safe-area-inset-bottom); }
+  html.phone-mode header.sticky { position:sticky; padding:10px 12px !important; }
+  html.phone-mode header.sticky .max-w-7xl { gap:8px; }
+  html.phone-mode header.sticky h1 { font-size:13px; }
+  html.phone-mode header.sticky .w-10 { width:34px; height:34px; font-size:16px; }
+  html.phone-mode #main-layout { max-width:100% !important; padding:12px !important; gap:14px !important; }
+  html.phone-mode #main-layout > nav { position:sticky; top:58px; z-index:30; justify-content:flex-start; flex-wrap:nowrap; overflow-x:auto; padding:6px !important; margin:0 !important; border-radius:20px !important; scrollbar-width:none; }
+  html.phone-mode #main-layout > nav::-webkit-scrollbar { display:none; }
+  html.phone-mode .nav-tab { flex:0 0 auto !important; padding:10px 14px !important; font-size:11px !important; }
+  html.phone-mode .nav-tab span { display:none; }
+  html.phone-mode .tab-view { width:100%; }
+  html.phone-mode .glass-panel, html.phone-mode .pack-card { border-radius:22px !important; }
+  html.phone-mode .grid { grid-template-columns:1fr !important; }
+  html.phone-mode .pack-card { min-height:190px; }
+  html.phone-mode input, html.phone-mode textarea, html.phone-mode select { font-size:16px !important; }
+  html.phone-mode button { min-height:44px; }
+  html.phone-mode .imessage-shell { min-height:calc(100svh - 136px); border-radius:22px !important; }
+  html.phone-mode .imessage-messages { min-height:calc(100svh - 270px); max-height:none; }
+  html.phone-mode #view-live-games .grid { gap:12px; }
+  #phone-mode-btn.phone-active { background:linear-gradient(135deg,rgba(103,232,249,.3),rgba(129,140,248,.35)) !important; color:#ecfeff !important; border-color:rgba(125,211,252,.5) !important; }
   /* iOS-inspired liquid glass navigation and shell */
   header.sticky { background:rgba(18,24,40,.58) !important; border-bottom:1px solid rgba(255,255,255,.2) !important; box-shadow:0 12px 36px rgba(0,0,0,.24), inset 0 1px rgba(255,255,255,.24); -webkit-backdrop-filter:blur(30px) saturate(180%); backdrop-filter:blur(30px) saturate(180%); }
   #main-layout { max-width:1480px !important; gap:28px !important; }
@@ -501,9 +522,9 @@
                 </button>
 
                 <!-- Phone Mode Toggle -->
-                <button id="phone-mode-btn" onclick="togglePhoneMode()" class="p-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white transition text-sm flex items-center gap-1.5 border border-gray-700" title="Toggle Compact Mobile Mode">
-                    📱 <span class="hidden md:inline text-xs font-semibold">Mobile UI</span>
-                </button>
+<button id="phone-mode-btn" onclick="togglePhoneMode()" class="p-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white transition text-sm flex items-center gap-1.5 border border-gray-700" title="Toggle phone play mode" aria-pressed="false">
+  📱 <span class="hidden md:inline text-xs font-semibold">Phone mode</span>
+  </button>
 
                 <!-- How to Play Tutorial -->
                 <button onclick="toggleModal('tutorial-modal', true)" class="p-2 rounded-xl bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 border border-indigo-500/40 transition text-sm flex items-center gap-1.5">
@@ -1801,16 +1822,15 @@ const reply = document.createElement('button'); reply.type = 'button'; reply.cla
   if (tabId === 'forge') updateForgePreview();
         }
 
+        function applyPhoneMode() {
+            document.documentElement.classList.toggle('phone-mode', Boolean(gameState.isPhoneMode));
+            const button = document.getElementById('phone-mode-btn');
+            if (button) { button.classList.toggle('phone-active', Boolean(gameState.isPhoneMode)); button.setAttribute('aria-pressed', String(Boolean(gameState.isPhoneMode))); button.title = gameState.isPhoneMode ? 'Switch to desktop layout' : 'Switch to phone play mode'; }
+        }
+
         function togglePhoneMode() {
             gameState.isPhoneMode = !gameState.isPhoneMode;
-            const main = document.getElementById('main-layout');
-            if (gameState.isPhoneMode) {
-                main.classList.remove('max-w-7xl');
-                main.classList.add('max-w-md');
-            } else {
-                main.classList.remove('max-w-md');
-                main.classList.add('max-w-7xl');
-            }
+            applyPhoneMode();
             saveGameState();
         }
 
@@ -1825,6 +1845,7 @@ const reply = document.createElement('button'); reply.type = 'button'; reply.cla
         }
 
         function updateUI() {
+            applyPhoneMode();
             renderShopPacks();
             document.getElementById('global-coins').innerText = gameState.coins.toLocaleString();
             refreshTrainingCap();
