@@ -521,7 +521,35 @@
   @keyframes liveQuestionIn { from { opacity:0; transform:translateY(12px) scale(.985); } to { opacity:1; transform:translateY(0) scale(1); } }
   @media (prefers-reduced-motion:reduce) { .nav-tab,.live-mode-card,.live-game-stats > div,.live-question-card,.live-action-button { transition:none !important; animation:none !important; } }
   @media (max-width:640px) { .live-game-stats { gap:6px; margin-top:16px; } .live-game-stats div { padding:10px; } .live-game-stats strong { font-size:17px; } }
-  </style>
+  
+  /* iOS 18 inspired visual system: quiet depth, soft translucency, and tactile controls. */
+  :root { color-scheme:dark; --ios-blue:#0a84ff; --ios-cyan:#64d2ff; --ios-line:rgba(255,255,255,.13); --ios-ease:cubic-bezier(.2,.75,.25,1); }
+  html { font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Segoe UI",sans-serif !important; }
+  body { background:radial-gradient(ellipse at 15% -5%,rgba(10,132,255,.22),transparent 38%),radial-gradient(ellipse at 100% 15%,rgba(191,90,242,.13),transparent 35%),linear-gradient(160deg,#111318,#090a0e 70%) !important; letter-spacing:-.012em; }
+  header.sticky { background:rgba(26,29,36,.72) !important; border-color:rgba(255,255,255,.12) !important; box-shadow:0 1px rgba(255,255,255,.08),0 10px 36px rgba(0,0,0,.22) !important; -webkit-backdrop-filter:blur(32px) saturate(180%); backdrop-filter:blur(32px) saturate(180%); }
+  #main-layout { max-width:1500px !important; gap:24px !important; }
+  #main-layout > nav { position:sticky; top:76px; z-index:32; display:flex; justify-content:flex-start; flex-wrap:nowrap; gap:5px; max-width:min(100%,1100px) !important; padding:6px !important; border:1px solid var(--ios-line) !important; border-radius:20px !important; background:rgba(35,38,46,.72) !important; box-shadow:0 12px 36px rgba(0,0,0,.22),inset 0 1px rgba(255,255,255,.12) !important; -webkit-backdrop-filter:blur(28px) saturate(180%); backdrop-filter:blur(28px) saturate(180%); }
+  .nav-tab { flex:0 0 auto !important; min-height:42px; padding:10px 15px !important; border:1px solid transparent !important; border-radius:14px !important; color:#b4b6bd !important; background:transparent !important; box-shadow:none !important; font-size:12px !important; font-weight:700 !important; transition:background .2s var(--ios-ease),color .2s ease,transform .2s var(--ios-ease) !important; }
+  .nav-tab.active { color:#fff !important; background:linear-gradient(180deg,rgba(255,255,255,.19),rgba(255,255,255,.09)) !important; border-color:rgba(255,255,255,.1) !important; box-shadow:inset 0 1px rgba(255,255,255,.14),0 3px 10px rgba(0,0,0,.12) !important; }
+  .nav-tab:hover:not(.active) { color:#fff !important; background:rgba(255,255,255,.075) !important; }
+  .glass-panel,.pack-card,#view-live-games > div,.imessage-shell { border:1px solid var(--ios-line) !important; border-radius:24px !important; background:linear-gradient(145deg,rgba(48,52,62,.75),rgba(26,29,36,.68)) !important; box-shadow:inset 0 1px rgba(255,255,255,.09),0 16px 44px rgba(0,0,0,.2) !important; -webkit-backdrop-filter:blur(22px) saturate(150%); backdrop-filter:blur(22px) saturate(150%); }
+  .glass-panel::after,.imessage-shell::after { opacity:.32 !important; }
+  .pack-card { transition:transform .22s var(--ios-ease),border-color .22s ease,box-shadow .22s ease !important; }
+  .pack-card:hover { transform:translateY(-3px) !important; border-color:rgba(255,255,255,.25) !important; box-shadow:inset 0 1px rgba(255,255,255,.12),0 20px 44px rgba(0,0,0,.3) !important; }
+  button { font-family:inherit !important; transition:filter .18s ease,transform .18s var(--ios-ease),background-color .18s ease !important; }
+  button:active:not(:disabled) { transform:scale(.975); }
+  input,textarea,select { border-color:rgba(255,255,255,.15) !important; border-radius:14px !important; background-color:rgba(14,16,21,.62) !important; color:#f5f5f7 !important; accent-color:var(--ios-blue); }
+  input:focus,textarea:focus,select:focus { outline:2px solid rgba(10,132,255,.72) !important; outline-offset:1px; }
+  .live-game-status-pill { border-color:rgba(48,209,88,.23) !important; background:rgba(48,209,88,.1) !important; }
+  .live-mode-card { border-radius:16px !important; background:rgba(255,255,255,.055) !important; }
+  .live-mode-card.active { border-color:rgba(10,132,255,.65) !important; background:rgba(10,132,255,.16) !important; }
+  .live-progress-fill { background:linear-gradient(90deg,#0a84ff,#64d2ff,#bf5af2) !important; }
+  .imessage-header { background:rgba(40,43,51,.88) !important; border-color:rgba(255,255,255,.1) !important; }
+  .imessage-composer { background:rgba(31,34,41,.9) !important; }
+  @media (max-width:900px) { #main-layout > nav { top:64px; } }
+  @media (max-width:640px) { #main-layout { gap:16px !important; padding-inline:14px !important; } #main-layout > nav { top:58px; border-radius:17px !important; } .nav-tab { padding:10px 13px !important; } .glass-panel,.pack-card,#view-live-games > div,.imessage-shell { border-radius:21px !important; } }
+  @media (prefers-reduced-motion:reduce) { *,*::before,*::after { scroll-behavior:auto !important; transition-duration:.01ms !important; animation-duration:.01ms !important; animation-iteration-count:1 !important; } }
+\n</style>
   </head>
 <body class="min-h-screen flex flex-col justify-between overflow-x-hidden">
 
@@ -1051,6 +1079,14 @@ Which pack costs 10 coins? | Ten Coin Pack</textarea><button id="live-game-creat
             { id: 'billionaire', title: 'Billionaire Pack', cost: 1000000000, icon: '💎', accent: '#22d3ee', desc: 'The ultimate one-billion-coin vault with premium odds.', themeColor: 'from-cyan-500 via-blue-700 to-violet-950', cardsPerPack: 8, featured: true,
               rates: { Common: 0, Uncommon: 0, Rare: 5, Epic: 20, Legendary: 35, Mythic: 40 } }
         ];
+
+        const SECRET_ADMIN_PACK = { id: 'secret-vault', title: 'Secret Pack', cost: 10000, icon: '🔐', accent: '#d8b4fe', desc: 'A hidden vault of secret stickman legends. Every card is a secret.', themeColor: 'from-violet-700 via-fuchsia-900 to-slate-950', cardsPerPack: 4, secretChance: 1, rates: { Common: 0, Uncommon: 0, Rare: 0, Epic: 0, Legendary: 0, Mythic: 100 } };
+        let secretPacksVisible = localStorage.getItem('stickman-secret-packs-visible') === 'true';
+        function setSecretPacksVisible(visible) {
+            secretPacksVisible = Boolean(visible);
+            localStorage.setItem('stickman-secret-packs-visible', String(secretPacksVisible));
+            renderShopPacks();
+        }
 
         // Procedural Stickman Generators Data (pack-specific pools)
         const CARD_PRESETS = [
@@ -1766,7 +1802,7 @@ let lastMessageId = 0;
     document.getElementById('chat-nickname-button').onclick = () => { const next = window.prompt('Choose a chat nickname', nickname); if (!next) return; nickname = next.replace(/[^A-Za-z0-9 _-]/g, '').trim().slice(0, 20) || me; localStorage.setItem(nicknameKey, nickname); document.getElementById('chat-nickname-button').textContent = nickname; };
   const playIncomingSound = (data) => { if (!data) return; const audio = new Audio(data); audio.play().catch(() => {}); };
   const playBuiltInSound = (sound) => { const AudioCtx = window.AudioContext || window.webkitAudioContext; if (!AudioCtx || sound === 'stop') return; const ctx = new AudioCtx(); const frequencies = sound === 'airhorn' ? [180,240] : sound === 'drum' ? [90,55] : sound === 'chime' ? [660,880,1040] : sound === 'laser' ? [1200,420] : sound === 'alarm' ? [880,520,880,520] : [520,760]; frequencies.forEach((frequency, index) => { const oscillator = ctx.createOscillator(); const gain = ctx.createGain(); const start = ctx.currentTime + index * .08; oscillator.frequency.value = frequency; oscillator.type = sound === 'airhorn' ? 'sawtooth' : 'square'; gain.gain.setValueAtTime(.0001, start); gain.gain.exponentialRampToValueAtTime(.16, start + .02); gain.gain.exponentialRampToValueAtTime(.0001, start + .25); oscillator.connect(gain).connect(ctx.destination); oscillator.start(start); oscillator.stop(start + .3); }); };
-  const applyIncomingAdminEvent = (message) => { if (message.startsWith('__SOUNDBOARD_DATA__:')) return playIncomingSound(message.slice(19)); if (message.startsWith('__SOUNDBOARD__:')) { playBuiltInSound(message.split(':')[1]); return true; } if (message.startsWith('__ADMIN_FX__:')) { document.body.dataset.adminFx = message.split(':')[1]; return true; } if (message.startsWith('__ADMIN_PACK__:')) { document.body.dataset.adminPack = message.split(':')[1]; document.body.dataset.adminFx = document.body.dataset.adminPack === 'chaos' ? 'shake' : document.body.dataset.adminPack === 'party' ? 'confetti' : 'neon'; return true; } if (message.startsWith('__MODERATION__:')) { const [, action, target, minutes] = message.split(':'); if (target.toLowerCase() !== me.toLowerCase()) return true; if (action === 'ban') document.body.innerHTML = '<main style="display:grid;place-items:center;min-height:100vh;background:#020617;color:#fca5a5;font:700 20px Arial;text-align:center;padding:24px;">You have been banned from this community.</main>'; if (action === 'timeout') { document.body.dataset.chatTimeoutUntil = String(Date.now() + Number(minutes) * 60000); } return true; } return false; };
+  const applyIncomingAdminEvent = (message) => { if (message.startsWith('__SECRET_PACKS__:')) { window.setSecretPacksVisible?.(message.slice('__SECRET_PACKS__:'.length) === 'show'); return true; } if (message.startsWith('__SOUNDBOARD_DATA__:')) return playIncomingSound(message.slice(19)); if (message.startsWith('__SOUNDBOARD__:')) { playBuiltInSound(message.split(':')[1]); return true; } if (message.startsWith('__ADMIN_FX__:')) { document.body.dataset.adminFx = message.split(':')[1]; return true; } if (message.startsWith('__ADMIN_PACK__:')) { document.body.dataset.adminPack = message.split(':')[1]; document.body.dataset.adminFx = document.body.dataset.adminPack === 'chaos' ? 'shake' : document.body.dataset.adminPack === 'party' ? 'confetti' : 'neon'; return true; } if (message.startsWith('__MODERATION__:')) { const [, action, target, minutes] = message.split(':'); if (target.toLowerCase() !== me.toLowerCase()) return true; if (action === 'ban') document.body.innerHTML = '<main style="display:grid;place-items:center;min-height:100vh;background:#020617;color:#fca5a5;font:700 20px Arial;text-align:center;padding:24px;">You have been banned from this community.</main>'; if (action === 'timeout') { document.body.dataset.chatTimeoutUntil = String(Date.now() + Number(minutes) * 60000); } return true; } return false; };
   const addMessage = (item) => { if (applyIncomingAdminEvent(item.message || '')) return; if (document.querySelector(`[data-message-id="${item.id}"]`)) return; const row = document.createElement('div'); row.dataset.messageId = item.id; row.className = `message-row ${item.username === me ? 'outgoing' : 'incoming'}`; const name = document.createElement('small'); name.className = 'chat-sender-name'; name.textContent = item.username === me ? `${nickname} · You` : (item.nickname || item.username); const bubble = document.createElement('div'); bubble.className = 'message-bubble'; bubble.textContent = cleanChatText(item.message); const time = document.createElement('time'); time.textContent = new Date(item.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); row.append(name, bubble, time); messages.appendChild(row); while (messages.children.length > 100) messages.firstElementChild?.remove(); messages.scrollTop = messages.scrollHeight; };
     const pollMessages = async () => { try { const response = await fetch(`/api/account?resource=chat&after=${lastMessageId}`, { cache: 'no-store' }); const data = await response.json(); (data.messages || []).forEach((item) => { addMessage(item); lastMessageId = Math.max(lastMessageId, Number(item.id)); }); } catch {} };
   const openJitsiCall = () => { const modal = document.getElementById('jitsi-call-modal'); const frame = document.getElementById('jitsi-frame'); const room = `StickmanCommunity-${location.hostname.replace(/[^a-z0-9]/gi, '')}`; frame.src = `https://meet.jit.si/${room}#config.prejoinPageEnabled=false&config.disableDeepLinking=true&interfaceConfig.SHOW_JITSI_WATERMARK=false`; frame.hidden = false; modal.hidden = false; document.getElementById('jitsi-call-status').textContent = 'Connected through Jitsi Meet. Share the room with your community.'; };
@@ -1975,7 +2011,8 @@ const reply = document.createElement('button'); reply.type = 'button'; reply.cla
         function renderShopPacks() {
             const grid = document.getElementById('pack-grid');
             if (!grid) return;
-            grid.innerHTML = PACKS_DATA.filter(isPackOpenToday).map(pack => {
+            const visiblePacks = secretPacksVisible ? [...PACKS_DATA, SECRET_ADMIN_PACK] : PACKS_DATA;
+            grid.innerHTML = visiblePacks.filter(isPackOpenToday).map(pack => {
                 const tiers = Object.entries(pack.rates).filter(([, r]) => r > 0);
                 const bar = tiers.map(([rar, r]) =>
                     `<div title="${rar}: ${r}%" style="width:${r}%; background:${RARITY_CONFIG[rar].color}"></div>`).join('');
