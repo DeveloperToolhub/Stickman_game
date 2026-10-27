@@ -15,7 +15,7 @@
   `;
   document.head.appendChild(adminGlassStyle);
   // Paste your Google OAuth Web client ID here. It is not secret.
-  let GOOGLE_CLIENT_ID = '';
+  let GOOGLE_CLIENT_ID = '1003622781649-nd95qmaqqeiccg6jf6ins10vnpr6vmfu.apps.googleusercontent.com';
   const TOKEN_KEY = 'stickman_token';
   const PUSH_DELAY_MS = 1500;
 
