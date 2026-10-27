@@ -2,7 +2,6 @@
 //   POST /api/account { action: "create", username, password }  -> { words }
 //   POST /api/account { action: "login",  username, password, words } -> { token, username }
 const { generateSecretWords, generateRecoveryCode, normalizeWords, hashSecret, checkSecret, signSession, verifySession } = require('../lib/auth');
-const { censorChatText } = require('../lib/chat-moderation');
 const { getUser, createUser, updateUser, listUsers, createAdminMessage, listActiveMessages, createAdminMedia, listActiveMedia, grantCoins, grantSecret, listWorldState, setWorldBackground, createChatMessage, listChatMessages, deleteChatMessage, deleteAllChatMessages, createPrivateMessage, listPrivateMessages, createCallSignal, listCallSignals, touchChatPresence, listOnlineUsers, createChatRequest, respondChatRequest, listChatRequests, hasAcceptedChat } = require('../lib/neon-storage');
 
 const USERNAME_RE = /^[A-Za-z0-9_]{3,20}$/;
@@ -106,7 +105,7 @@ module.exports = async (req, res) => {
     if (body.action === 'chat-message') {
 const chatUsername = String(body.username || '').trim().slice(0, 20) || 'Player';
     const nickname = String(body.nickname || chatUsername).replace(/[^A-Za-z0-9 _-]/g, '').trim().slice(0, 20) || chatUsername;
-    const message = censorChatText(String(body.message || '').trim().slice(0, 180));
+    const message = String(body.message || '').normalize('NFKC').trim().slice(0, 180).replace(/[^\p{L}\p{N}\s]/gu, (char) => char).replace(/(s\W*l\W*u\W*r|f\W*u\W*c\W*k|s\W*h\W*i\W*t|b\W*i\W*t\W*c\W*h|a\W*s\W*s\W*h\W*o\W*l\W*e|d\W*i\W*c\W*k|c\W*u\W*n\W*t|n\W*i\W*g\W*g\W*e\W*r|f\W*a\W*g\W*g\W*o\W*t|spamword|badword)/giu, '•••');
     if (!/^[A-Za-z0-9 _-]{1,20}$/.test(chatUsername) || !message) return res.status(400).json({ error: 'Enter a valid name and message.' });
     const moderation = await fetch('https://ai-gateway.vercel.sh/v1/chat/completions', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ model:'google/gemini-3.7-flash', temperature:0, response_format:{ type:'json_object' }, messages:[{ role:'system', content:'You moderate a friendly game community. Return only JSON with keys allow (boolean) and reason (string). Block targeted harassment, threats, hate, sexual content involving minors, doxxing, and repeated spam. Allow harmless slang, jokes, and game banter.' },{ role:'user', content:message }] }) }); if (moderation.ok) { const verdict = await moderation.json().catch(() => ({})); try { const result = JSON.parse(verdict.choices?.[0]?.message?.content || '{}'); if (result.allow === false) return res.status(422).json({ error: result.reason || 'Message blocked by Gemini moderation.' }); } catch {} } const createdMessage = await createChatMessage(chatUsername, nickname, message); if (!createdMessage) return res.status(429).json({ error: 'Spam detected. Your recent chat messages were deleted. Please slow down.' }); return res.json({ message: createdMessage });
     }
@@ -120,7 +119,7 @@ const chatUsername = String(body.username || '').trim().slice(0, 20) || 'Player'
     if (body.action === 'private-message') {
       const sender = String(body.sender || '').trim().toLowerCase();
       const recipient = String(body.recipient || '').trim().toLowerCase();
-      const message = censorChatText(String(body.message || '').trim().slice(0, 500));
+      const message = String(body.message || '').trim().slice(0, 500);
       if (!USERNAME_RE.test(sender) || !USERNAME_RE.test(recipient) || !message) return res.status(400).json({ error: 'Valid users and a message are required.' });
       if (!await getUser(recipient)) return res.status(404).json({ error: 'User not found.' });
       if (!await hasAcceptedChat(sender, recipient)) return res.status(403).json({ error: 'This user must accept your chat request first.' });
