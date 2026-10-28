@@ -23,6 +23,7 @@
   },
   "homepage": "https://github.com/DeveloperToolhub/Stickman_game#readme",
   "dependencies": {
+    "ai": "^7.0.155",
     "pg": "^8.23.1"
   }
 }
