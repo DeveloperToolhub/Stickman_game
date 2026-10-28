@@ -1,11 +1,24 @@
 // api/account.js: username accounts.
 //   POST /api/account { action: "create", username, password }  -> { words }
 //   POST /api/account { action: "login",  username, password, words } -> { token, username }
+const { generateText } = require('ai');
 const { generateSecretWords, generateRecoveryCode, normalizeWords, hashSecret, checkSecret, signSession, verifySession } = require('../lib/auth');
 const { getUser, createUser, updateUser, listUsers, createAdminMessage, listActiveMessages, createAdminMedia, listActiveMedia, grantCoins, grantSecret, listWorldState, setWorldBackground, createChatMessage, listChatMessages, deleteChatMessage, deleteAllChatMessages, createPrivateMessage, listPrivateMessages, createCallSignal, listCallSignals, touchChatPresence, listOnlineUsers, createChatRequest, respondChatRequest, listChatRequests, hasAcceptedChat } = require('../lib/neon-storage');
 
 const USERNAME_RE = /^[A-Za-z0-9_]{3,20}$/;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const AI_GATEWAY_URL = 'https://ai-gateway.vercel.sh/v1/chat/completions';
+
+async function runModeratorModel(messages) {
+  const models = ['openai/gpt-4o-mini', 'anthropic/claude-haiku-4.5'];
+  for (const model of models) {
+    try {
+      const result = await generateText({ model, system: messages.find((item) => item.role === 'system')?.content || '', prompt: messages.find((item) => item.role === 'user')?.content || '', maxOutputTokens: 300, temperature: 0 });
+      if (result.text?.trim()) return { model, content: result.text.trim() };
+    } catch {}
+  }
+  return null;
+}
 
 async function verifyGoogleCredential(idToken) {
   if (!GOOGLE_CLIENT_ID || !idToken) return null;
@@ -127,7 +140,7 @@ const chatUsername = String(body.username || '').trim().slice(0, 20) || 'Player'
     }
 
     if (body.action === 'delete-all-chat-messages') { const auth = String(req.headers.authorization || ''); const sessionUser = auth.startsWith('Bearer ') ? verifySession(auth.slice(7)) : null; const sender = sessionUser && await getUser(sessionUser); if (!sender || sender.role !== 'moderator') return res.status(403).json({ error: 'Moderator access required.' }); const deleted = await deleteAllChatMessages(); return res.json({ deleted }); }
-  if (body.action === 'ai-moderator') { const message = String(body.message || '').trim().slice(0, 500); if (!message) return res.status(400).json({ error: 'Ask a moderation question.' }); const response = await fetch('https://ai-gateway.vercel.sh/v1/chat/completions', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ model:'openai/gpt-4o-mini', messages:[{ role:'system', content:'You are a concise, safety-focused community chat moderator. Explain rules, identify harassment or profanity risks, and suggest respectful rewrites. Never reveal private data or help target users.' },{ role:'user', content:message }] }) }); if (!response.ok) return res.json({ reply:'The AI moderator is unavailable right now. The built-in safety filter is still active for chat messages.' }); const data = await response.json(); return res.json({ reply: data.choices?.[0]?.message?.content || 'The moderator could not answer.' }); }
+  if (body.action === 'ai-moderator') { const message = String(body.message || '').trim().slice(0, 500); if (!message) return res.status(400).json({ error: 'Ask a moderation question.' }); const result = await runModeratorModel([{ role:'system', content:'You are a concise, safety-focused community chat moderator. Explain rules, identify harassment or profanity risks, and suggest respectful rewrites. Never reveal private data or help target users.' }, { role:'user', content:message }]); if (!result) return res.status(503).json({ error:'Both AI moderator providers are unavailable. Try again shortly.' }); return res.json({ reply: result.content, model: result.model }); }
   if (body.action === 'delete-chat-message') { const username = String(body.username || '').trim(); const messageId = Number(body.messageId); if (!USERNAME_RE.test(username) || !Number.isInteger(messageId) || messageId < 1) return res.status(400).json({ error: 'Invalid message.' }); const deleted = await deleteChatMessage(messageId, username); return res.json({ deleted }); }
   if (body.action === 'presence') { const username = String(body.username || '').trim().toLowerCase(); if (!USERNAME_RE.test(username)) return res.status(400).json({ error: 'Valid username required.' }); await touchChatPresence(username, body.isTyping === true); return res.json({ ok: true }); }
     if (body.action === 'request-chat') { const requester = String(body.requester || '').trim().toLowerCase(); const recipient = String(body.recipient || '').trim().toLowerCase(); if (!USERNAME_RE.test(requester) || !USERNAME_RE.test(recipient) || requester === recipient) return res.status(400).json({ error: 'Valid users required.' }); if (!await getUser(recipient)) return res.status(404).json({ error: 'User not found.' }); return res.json({ request: await createChatRequest(requester, recipient) }); }
