@@ -1727,8 +1727,8 @@ function setupPublicChat(form) {
   const messages = document.getElementById('chat-messages');
   const nicknameKey = 'STICKMAN_CHAT_NICKNAME';
   const askModerator = async (message) => { const response = await fetch('/api/account', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ action:'ai-moderator', message, context:'Stickman community chat moderation and safety' }) }); const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || 'Moderator unavailable.'); return data.reply; };
-  const blockedWords = ['slur','spamword','badword','fuck','shit','bitch','asshole','dick','cunt','nigger','faggot'];
-  const cleanChatText = (value) => value.normalize('NFKC').replace(/[._\-\s]+/g, ' ').split(/(\s+)/).map((part) => blockedWords.some((word) => part.toLowerCase().replace(/[^a-z]/g, '').includes(word)) ? '•••' : part).join('');
+  const blockedWords = ['slur','spamword','badword','fuck','shit','bitch','asshole','dick','penis','vagina','boob','nipple','anus','cunt','cock','cum','nigger','faggot','retard','kike','spic','tranny','kill','doxx','swat'];
+  const cleanChatText = (value) => value.normalize('NFKC').replace(/[._\-\s]+/g, ' ').split(/(\s+)/).map((part) => blockedWords.some((word) => part.toLowerCase().replace(/[0@4]/g, 'a').replace(/[1!|]/g, 'i').replace(/[3]/g, 'e').replace(/[5$]/g, 's').replace(/[7]/g, 't').replace(/[^a-z]/g, '').includes(word)) ? '•••' : part).join('');
   const me = (localStorage.getItem('STICKMAN_CHAT_NAME') || `Player${Math.floor(Math.random() * 900 + 100)}`).replace(/[^A-Za-z0-9_]/g, '').slice(0, 20) || 'Player';
   let nickname = localStorage.getItem(nicknameKey) || me;
 document.getElementById('chat-nickname-button').textContent = nickname;
