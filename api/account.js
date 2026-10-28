@@ -105,9 +105,23 @@ module.exports = async (req, res) => {
     if (body.action === 'chat-message') {
 const chatUsername = String(body.username || '').trim().slice(0, 20) || 'Player';
     const nickname = String(body.nickname || chatUsername).replace(/[^A-Za-z0-9 _-]/g, '').trim().slice(0, 20) || chatUsername;
-    const message = String(body.message || '').normalize('NFKC').trim().slice(0, 180).replace(/[^\p{L}\p{N}\s]/gu, (char) => char).replace(/(s\W*l\W*u\W*r|f\W*u\W*c\W*k|s\W*h\W*i\W*t|b\W*i\W*t\W*c\W*h|a\W*s\W*s\W*h\W*o\W*l\W*e|d\W*i\W*c\W*k|c\W*u\W*n\W*t|n\W*i\W*g\W*g\W*e\W*r|f\W*a\W*g\W*g\W*o\W*t|spamword|badword)/giu, '•••');
+    const rawMessage = String(body.message || '').normalize('NFKC').trim().slice(0, 180);
+    const moderationText = rawMessage.toLocaleLowerCase().replace(/[0@4]/g, 'a').replace(/[1!|]/g, 'i').replace(/[3]/g, 'e').replace(/[5$]/g, 's').replace(/[7]/g, 't').replace(/[^a-z0-9]+/g, '');
+    const blockedPatterns = [
+      /f+u+c+k/i, /s+h+i+t/i, /b+i+t+c+h/i, /a+s+s+h+o+l+e/i, /d+i+c+k/i, /p+e+n+i+s/i, /v+a+g+i+n+a/i, /b+o+o+b+s?/i, /n+i+p+p+l+e/i, /a+n+u+s/i, /c+o+c+k/i, /c+u+m/i,
+      /n+i+g+g+e+r/i, /f+a+g+g+o+t/i, /r+e+t+a+r+d/i, /k+i+k+e/i, /s+p+i+c/i, /t+r+a+n+n+y/i,
+      /k+i+l+l/i, /d+o+x+x/i, /s+w+a+t/i, /s+p+a+m+w+o+r+d/i, /b+a+d+w+o+r+d/i
+    ];
+    const hasBlockedLanguage = blockedPatterns.some((pattern) => pattern.test(moderationText));
+    const message = rawMessage.replace(/[^\p{L}\p{N}\s]/gu, '');
     if (!/^[A-Za-z0-9 _-]{1,20}$/.test(chatUsername) || !message) return res.status(400).json({ error: 'Enter a valid name and message.' });
-    const moderation = await fetch('https://ai-gateway.vercel.sh/v1/chat/completions', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ model:'google/gemini-3.7-flash', temperature:0, response_format:{ type:'json_object' }, messages:[{ role:'system', content:'You moderate a friendly game community. Return only JSON with keys allow (boolean) and reason (string). Block targeted harassment, threats, hate, sexual content involving minors, doxxing, and repeated spam. Allow harmless slang, jokes, and game banter.' },{ role:'user', content:message }] }) }); if (moderation.ok) { const verdict = await moderation.json().catch(() => ({})); try { const result = JSON.parse(verdict.choices?.[0]?.message?.content || '{}'); if (result.allow === false) return res.status(422).json({ error: result.reason || 'Message blocked by Gemini moderation.' }); } catch {} } const createdMessage = await createChatMessage(chatUsername, nickname, message); if (!createdMessage) return res.status(429).json({ error: 'Spam detected. Your recent chat messages were deleted. Please slow down.' }); return res.json({ message: createdMessage });
+    if (hasBlockedLanguage) return res.status(422).json({ error: 'Message blocked by the chat safety filter.' });
+    const moderation = await fetch('https://ai-gateway.vercel.sh/v1/chat/completions', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ model:'google/gemini-3.7-flash', temperature:0, response_format:{ type:'json_object' }, messages:[{ role:'system', content:'You are the final safety moderator for a friendly all-ages game chat. Return only JSON: {"allow":true|false,"reason":"short reason"}. Block harassment, threats, hate, sexual content, explicit body-part sexualization, slurs, doxxing, evasion of filters, and repeated spam. Allow ordinary anatomy, health, and non-targeted game banter.' },{ role:'user', content:message }] }) });
+    if (!moderation.ok) return res.status(503).json({ error: 'Chat moderation is temporarily unavailable. Please try again.' });
+    const verdict = await moderation.json().catch(() => ({}));
+    let result = null; try { result = JSON.parse(verdict.choices?.[0]?.message?.content?.replace(/^```json\s*|\s*```$/g, '') || '{}'); } catch {}
+    if (!result || result.allow !== true) return res.status(422).json({ error: result?.reason || 'Message blocked by Gemini moderation.' });
+    const createdMessage = await createChatMessage(chatUsername, nickname, message); if (!createdMessage) return res.status(429).json({ error: 'Spam detected. Your recent chat messages were deleted. Please slow down.' }); return res.json({ message: createdMessage });
     }
 
     if (body.action === 'delete-all-chat-messages') { const auth = String(req.headers.authorization || ''); const sessionUser = auth.startsWith('Bearer ') ? verifySession(auth.slice(7)) : null; const sender = sessionUser && await getUser(sessionUser); if (!sender || sender.role !== 'moderator') return res.status(403).json({ error: 'Moderator access required.' }); const deleted = await deleteAllChatMessages(); return res.json({ deleted }); }
