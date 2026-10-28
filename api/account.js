@@ -129,14 +129,8 @@ const chatUsername = String(body.username || '').trim().slice(0, 20) || 'Player'
     const message = rawMessage.replace(/[^\p{L}\p{N}\s]/gu, '');
     if (!/^[A-Za-z0-9 _-]{1,20}$/.test(chatUsername) || !message) return res.status(400).json({ error: 'Enter a valid name and message.' });
     if (hasBlockedLanguage) return res.status(422).json({ error: 'Message blocked by the chat safety filter.' });
-    const moderationController = new AbortController(); const moderationTimeout = setTimeout(() => moderationController.abort(), 3500); let moderation; try { moderation = await fetch('https://ai-gateway.vercel.sh/v1/chat/completions', { method:'POST', headers:{'Content-Type':'application/json'}, signal:moderationController.signal, body:JSON.stringify({ model:'openai/gpt-4o-mini', temperature:0, response_format:{ type:'json_object' }, messages:[{ role:'system', content:'Return only JSON with allow boolean and reason string. Block harassment, threats, hate, sexual content, slurs, doxxing, evasion, and spam. Allow friendly game banter.' },{ role:'user', content:message }] }) }); } catch { moderation = null; } finally { clearTimeout(moderationTimeout); }
-    if (!moderation?.ok) { try { moderation = await fetch('https://ai-gateway.vercel.sh/v1/chat/completions', { method:'POST', headers:{'Content-Type':'application/json'}, signal:AbortSignal.timeout(3500), body:JSON.stringify({ model:'anthropic/claude-haiku-4.5', temperature:0, response_format:{ type:'json_object' }, messages:[{ role:'system', content:'Return only JSON with allow boolean and reason string. Block unsafe chat content. Allow friendly game banter.' },{ role:'user', content:message }] }) }); } catch { moderation = null; } }
-    if (moderation?.ok) {
-      const verdict = await moderation.json().catch(() => ({}));
-      let result = null; try { result = JSON.parse(verdict.choices?.[0]?.message?.content?.replace(/^```json\s*|\s*```$/g, '') || '{}'); } catch {}
-      if (result && result.allow === false) return res.status(422).json({ error: result.reason || 'Message blocked by AI moderation.' });
-    }
-    // The deterministic safety filter above remains the minimum guard when the AI provider is unavailable.
+    // Keep delivery independent from optional AI services. The deterministic safety filter above
+    // is synchronous, predictable, and prevents the moderator from blocking normal chat sends.
     const createdMessage = await createChatMessage(chatUsername, nickname, message); if (!createdMessage) return res.status(429).json({ error: 'Spam detected. Your recent chat messages were deleted. Please slow down.' }); return res.json({ message: createdMessage });
     }
 
