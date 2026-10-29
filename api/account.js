@@ -1,8 +1,17 @@
 // api/account.js: username accounts.
 //   POST /api/account { action: "create", username, password }  -> { words }
 //   POST /api/account { action: "login",  username, password, words } -> { token, username }
+const fs = require('fs');
+const path = require('path');
 const { generateText } = require('ai');
 const { generateSecretWords, generateRecoveryCode, normalizeWords, hashSecret, checkSecret, signSession, verifySession } = require('../lib/auth');
+
+const moderationWordFiles = ['moderation-words-1.txt', 'moderation-words-2.txt', 'moderation-words-3.txt'];
+const normalizeModerationTerm = (value) => String(value).toLocaleLowerCase().normalize('NFKC').replace(/[0@]/g, 'a').replace(/[1!|]/g, 'i').replace(/[3]/g, 'e').replace(/[5$]/g, 's').replace(/[7]/g, 't').replace(/[^a-z0-9]+/g, '');
+const importedModerationTerms = new Set(moderationWordFiles.flatMap((file) => { try { return fs.readFileSync(path.join(__dirname, '..', 'lib', file), 'utf8').split(/\r?\n/).map(normalizeModerationTerm).filter((term) => term.length >= 2); } catch { return []; } }));
+const builtInModerationTerms = ['fuck', 'shit', 'bitch', 'asshole', 'dick', 'penis', 'vagina', 'nigger', 'faggot', 'retard', 'doxx', 'spamword'];
+for (const term of builtInModerationTerms) importedModerationTerms.add(normalizeModerationTerm(term));
+const hasBlockedModerationTerm = (text) => { const normalized = normalizeModerationTerm(text); const exactTokens = String(text).toLocaleLowerCase().normalize('NFKC').split(/[^\p{L}\p{N}]+/u).filter(Boolean); return [...importedModerationTerms].some((term) => term.length >= 4 ? normalized.includes(term) : exactTokens.includes(term)); };
 const { getUser, createUser, updateUser, listUsers, createAdminMessage, listActiveMessages, createAdminMedia, listActiveMedia, grantCoins, grantSecret, listWorldState, setWorldBackground, createChatMessage, listChatMessages, deleteChatMessage, deleteAllChatMessages, createPrivateMessage, listPrivateMessages, createCallSignal, listCallSignals, touchChatPresence, listOnlineUsers, createChatRequest, respondChatRequest, listChatRequests, hasAcceptedChat } = require('../lib/neon-storage');
 
 const USERNAME_RE = /^[A-Za-z0-9_]{3,20}$/;
@@ -119,13 +128,7 @@ module.exports = async (req, res) => {
 const chatUsername = String(body.username || '').trim().slice(0, 20) || 'Player';
     const nickname = String(body.nickname || chatUsername).replace(/[^A-Za-z0-9 _-]/g, '').trim().slice(0, 20) || chatUsername;
     const rawMessage = String(body.message || '').normalize('NFKC').trim().slice(0, 180);
-    const moderationText = rawMessage.toLocaleLowerCase().replace(/[0@4]/g, 'a').replace(/[1!|]/g, 'i').replace(/[3]/g, 'e').replace(/[5$]/g, 's').replace(/[7]/g, 't').replace(/[^a-z0-9]+/g, '');
-    const blockedPatterns = [
-      /f+u+c+k/i, /s+h+i+t/i, /b+i+t+c+h/i, /a+s+s+h+o+l+e/i, /d+i+c+k/i, /p+e+n+i+s/i, /v+a+g+i+n+a/i, /b+o+o+b+s?/i, /n+i+p+p+l+e/i, /a+n+u+s/i, /c+o+c+k/i, /c+u+m/i,
-      /n+i+g+g+e+r/i, /f+a+g+g+o+t/i, /r+e+t+a+r+d/i, /k+i+k+e/i, /s+p+i+c/i, /t+r+a+n+n+y/i,
-      /k+i+l+l/i, /d+o+x+x/i, /s+w+a+t/i, /s+p+a+m+w+o+r+d/i, /b+a+d+w+o+r+d/i
-    ];
-    const hasBlockedLanguage = blockedPatterns.some((pattern) => pattern.test(moderationText));
+    const hasBlockedLanguage = hasBlockedModerationTerm(rawMessage);
     const message = rawMessage.replace(/[^\p{L}\p{N}\s]/gu, '');
     if (!/^[A-Za-z0-9 _-]{1,20}$/.test(chatUsername) || !message) return res.status(400).json({ error: 'Enter a valid name and message.' });
     if (hasBlockedLanguage) return res.status(422).json({ error: 'Message blocked by the chat safety filter.' });
