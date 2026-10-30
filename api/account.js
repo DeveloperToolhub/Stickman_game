@@ -70,7 +70,7 @@ const LOCK_MS = 15 * 60 * 1000;
 
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
-  await ensureAdmin();
+  try { await ensureAdmin(); } catch (error) { console.error('[account] admin bootstrap skipped:', error.message); }
   if (req.method === 'GET') {
     if (String(req.query?.resource || '') === 'session') { const auth = String(req.headers.authorization || ''); const sessionUser = auth.startsWith('Bearer ') ? verifySession(auth.slice(7)) : null; const session = sessionUser && await getUser(sessionUser); if (!session) return res.status(401).json({ error: 'Sign-in required.' }); return res.json({ username: session.username, role: session.role || 'player' }); }
     if (String(req.query?.resource || '') === 'messages') return res.json({ messages: await listActiveMessages() });
