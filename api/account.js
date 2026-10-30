@@ -1,44 +1,11 @@
 // api/account.js: username accounts.
 //   POST /api/account { action: "create", username, password }  -> { words }
 //   POST /api/account { action: "login",  username, password, words } -> { token, username }
-const fs = require('fs');
-const path = require('path');
-const { generateText } = require('ai');
 const { generateSecretWords, generateRecoveryCode, normalizeWords, hashSecret, checkSecret, signSession, verifySession } = require('../lib/auth');
-
-const moderationWordFiles = ['moderation-words-1.txt', 'moderation-words-2.txt', 'moderation-words-3.txt'];
-const normalizeModerationTerm = (value) => String(value).toLocaleLowerCase().normalize('NFKC').replace(/[0@]/g, 'a').replace(/[1!|]/g, 'i').replace(/[3]/g, 'e').replace(/[5$]/g, 's').replace(/[7]/g, 't').replace(/[^a-z0-9]+/g, '');
-const importedModerationTerms = new Set(moderationWordFiles.flatMap((file) => { try { return fs.readFileSync(path.join(__dirname, '..', 'lib', file), 'utf8').split(/\r?\n/).map(normalizeModerationTerm).filter((term) => term.length >= 4); } catch { return []; } }));
-const builtInModerationTerms = ['fuck', 'shit', 'bitch', 'asshole', 'dick', 'penis', 'vagina', 'nigger', 'faggot', 'retard', 'doxx', 'spamword'];
-const ignoredCommonWords = new Set(['hi', 'hey', 'hello', 'hiya', 'howdy', 'yo', 'sup', 'greetings', 'welcome', 'thanks', 'thankyou', 'please', 'goodbye', 'bye', 'goodmorning', 'goodafternoon', 'goodevening', 'goodnight', 'game', 'games', 'chat', 'message', 'messages', 'player', 'players', 'friend', 'friends', 'the', 'this', 'that', 'what', 'when', 'where', 'why', 'how', 'have', 'help', 'are', 'your', 'you', 'with', 'from', 'just', 'like', 'love', 'look', 'good', 'nice', 'awesome', 'okay', 'please', 'thanks', 'thankyou', 'could', 'would', 'want', 'need', 'gg', 'glhf']);
-for (const term of builtInModerationTerms) importedModerationTerms.add(normalizeModerationTerm(term));
-const hasBlockedModerationTerm = (text) => {
-  const originalTokens = String(text).toLocaleLowerCase().normalize('NFKC').split(/[^\p{L}\p{N}]+/u).filter(Boolean);
-  const normalizedTokens = originalTokens.map(normalizeModerationTerm);
-  const compact = normalizedTokens.join('');
-  return [...importedModerationTerms].some((term) => {
-    if (ignoredCommonWords.has(term)) return false;
-    if (term.length < 4) return false;
-    if (normalizedTokens.includes(term)) return true;
-    return term.length >= 6 && compact.includes(term);
-  });
-};
 const { getUser, createUser, updateUser, listUsers, createAdminMessage, listActiveMessages, createAdminMedia, listActiveMedia, grantCoins, grantSecret, listWorldState, setWorldBackground, createChatMessage, listChatMessages, deleteChatMessage, deleteAllChatMessages, createPrivateMessage, listPrivateMessages, createCallSignal, listCallSignals, touchChatPresence, listOnlineUsers, createChatRequest, respondChatRequest, listChatRequests, hasAcceptedChat } = require('../lib/neon-storage');
 
 const USERNAME_RE = /^[A-Za-z0-9_]{3,20}$/;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const AI_GATEWAY_URL = 'https://ai-gateway.vercel.sh/v1/chat/completions';
-
-async function runModeratorModel(messages) {
-  const models = ['openai/gpt-4o-mini', 'anthropic/claude-haiku-4.5'];
-  for (const model of models) {
-    try {
-      const result = await generateText({ model, system: messages.find((item) => item.role === 'system')?.content || '', prompt: messages.find((item) => item.role === 'user')?.content || '', maxOutputTokens: 300, temperature: 0 });
-      if (result.text?.trim()) return { model, content: result.text.trim() };
-    } catch {}
-  }
-  return null;
-}
 
 async function verifyGoogleCredential(idToken) {
   if (!GOOGLE_CLIENT_ID || !idToken) return null;
@@ -70,7 +37,7 @@ const LOCK_MS = 15 * 60 * 1000;
 
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
-  try { await ensureAdmin(); } catch (error) { console.error('[account] admin bootstrap skipped:', error.message); }
+  await ensureAdmin();
   if (req.method === 'GET') {
     if (String(req.query?.resource || '') === 'session') { const auth = String(req.headers.authorization || ''); const sessionUser = auth.startsWith('Bearer ') ? verifySession(auth.slice(7)) : null; const session = sessionUser && await getUser(sessionUser); if (!session) return res.status(401).json({ error: 'Sign-in required.' }); return res.json({ username: session.username, role: session.role || 'player' }); }
     if (String(req.query?.resource || '') === 'messages') return res.json({ messages: await listActiveMessages() });
@@ -139,25 +106,28 @@ module.exports = async (req, res) => {
 const chatUsername = String(body.username || '').trim().slice(0, 20) || 'Player';
     const nickname = String(body.nickname || chatUsername).replace(/[^A-Za-z0-9 _-]/g, '').trim().slice(0, 20) || chatUsername;
     const rawMessage = String(body.message || '').normalize('NFKC').trim().slice(0, 180);
-    const hasBlockedLanguage = hasBlockedModerationTerm(rawMessage);
+    const moderationText = rawMessage.toLocaleLowerCase().replace(/[0@4]/g, 'a').replace(/[1!|]/g, 'i').replace(/[3]/g, 'e').replace(/[5$]/g, 's').replace(/[7]/g, 't').replace(/[^a-z0-9]+/g, '');
+    const blockedPatterns = [
+      /f+u+c+k/i, /s+h+i+t/i, /b+i+t+c+h/i, /a+s+s+h+o+l+e/i, /d+i+c+k/i, /p+e+n+i+s/i, /v+a+g+i+n+a/i, /b+o+o+b+s?/i, /n+i+p+p+l+e/i, /a+n+u+s/i, /c+o+c+k/i, /c+u+m/i,
+      /n+i+g+g+e+r/i, /f+a+g+g+o+t/i, /r+e+t+a+r+d/i, /k+i+k+e/i, /s+p+i+c/i, /t+r+a+n+n+y/i,
+      /k+i+l+l/i, /d+o+x+x/i, /s+w+a+t/i, /s+p+a+m+w+o+r+d/i, /b+a+d+w+o+r+d/i
+    ];
+    const hasBlockedLanguage = blockedPatterns.some((pattern) => pattern.test(moderationText));
     const message = rawMessage.replace(/[^\p{L}\p{N}\s]/gu, '');
     if (!/^[A-Za-z0-9 _-]{1,20}$/.test(chatUsername) || !message) return res.status(400).json({ error: 'Enter a valid name and message.' });
     if (hasBlockedLanguage) return res.status(422).json({ error: 'Message blocked by the chat safety filter.' });
-    // Keep delivery independent from optional AI services. The imported moderation lists above
-    // are synchronous, so an unavailable AI provider cannot prevent normal messages from sending.
-    let createdMessage; try { createdMessage = await createChatMessage(chatUsername, nickname, message); } catch (error) { console.error('[chat] message write failed:', error); return res.status(503).json({ error: 'Chat storage is temporarily unavailable. Please try again.' }); } if (!createdMessage) return res.status(429).json({ error: 'Spam detected. Your recent chat messages were deleted. Please slow down.' }); return res.json({ message: createdMessage });
+    const moderationController = new AbortController(); const moderationTimeout = setTimeout(() => moderationController.abort(), 8000); let moderation; try { moderation = await fetch('https://ai-gateway.vercel.sh/v1/chat/completions', { method:'POST', headers:{'Content-Type':'application/json'}, signal:moderationController.signal, body:JSON.stringify({ model:'openai/gpt-4o-mini', temperature:0, response_format:{ type:'json_object' }, messages:[{ role:'system', content:'You are the final safety moderator for a friendly all-ages game chat. Return only JSON: {"allow":true|false,"reason":"short reason"}. Block harassment, threats, hate, sexual content, explicit body-part sexualization, slurs, doxxing, evasion of filters, and repeated spam. Allow ordinary anatomy, health, and non-targeted game banter.' },{ role:'user', content:message }] }) }); } catch { moderation = null; } finally { clearTimeout(moderationTimeout); }
+    if (moderation?.ok) {
+      const verdict = await moderation.json().catch(() => ({}));
+      let result = null; try { result = JSON.parse(verdict.choices?.[0]?.message?.content?.replace(/^```json\s*|\s*```$/g, '') || '{}'); } catch {}
+      if (result && result.allow === false) return res.status(422).json({ error: result.reason || 'Message blocked by AI moderation.' });
+    }
+    // The deterministic safety filter above remains the minimum guard when the AI provider is unavailable.
+    const createdMessage = await createChatMessage(chatUsername, nickname, message); if (!createdMessage) return res.status(429).json({ error: 'Spam detected. Your recent chat messages were deleted. Please slow down.' }); return res.json({ message: createdMessage });
     }
 
     if (body.action === 'delete-all-chat-messages') { const auth = String(req.headers.authorization || ''); const sessionUser = auth.startsWith('Bearer ') ? verifySession(auth.slice(7)) : null; const sender = sessionUser && await getUser(sessionUser); if (!sender || sender.role !== 'moderator') return res.status(403).json({ error: 'Moderator access required.' }); const deleted = await deleteAllChatMessages(); return res.json({ deleted }); }
-  if (body.action === 'ai-moderator') {
-    const message = String(body.message || '').trim().slice(0, 500);
-    if (!message) return res.status(400).json({ error: 'Ask a moderation question.' });
-    const result = await runModeratorModel([{ role:'system', content:'You are a concise, safety-focused community chat moderator. Explain rules, identify harassment or profanity risks, and suggest respectful rewrites. Never reveal private data or help target users.' }, { role:'user', content:message }]);
-    if (result) return res.json({ reply: result.content, model: result.model, live: true });
-    const normalized = message.toLowerCase();
-    const unsafe = /(harass|threat|hate|slur|sexual|dox|spam|bully|inappropriate|body part)/.test(normalized);
-    return res.json({ reply: unsafe ? 'This may violate the community rules. Do not target, threaten, sexualize, expose private information, or spam other players. Rewrite it in a respectful, game-focused way.' : 'The live AI is temporarily unavailable, but the built-in safety filter is active. Keep messages respectful, game-focused, and free of harassment, threats, sexual content, personal information, and spam.', model: 'built-in-safety-moderator', live: false });
-  }
+  if (body.action === 'ai-moderator') { const message = String(body.message || '').trim().slice(0, 500); if (!message) return res.status(400).json({ error: 'Ask a moderation question.' }); const response = await fetch('https://ai-gateway.vercel.sh/v1/chat/completions', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ model:'openai/gpt-4o-mini', messages:[{ role:'system', content:'You are a concise, safety-focused community chat moderator. Explain rules, identify harassment or profanity risks, and suggest respectful rewrites. Never reveal private data or help target users.' },{ role:'user', content:message }] }) }); if (!response.ok) return res.json({ reply:'The AI moderator is unavailable right now. The built-in safety filter is still active for chat messages.' }); const data = await response.json(); return res.json({ reply: data.choices?.[0]?.message?.content || 'The moderator could not answer.' }); }
   if (body.action === 'delete-chat-message') { const username = String(body.username || '').trim(); const messageId = Number(body.messageId); if (!USERNAME_RE.test(username) || !Number.isInteger(messageId) || messageId < 1) return res.status(400).json({ error: 'Invalid message.' }); const deleted = await deleteChatMessage(messageId, username); return res.json({ deleted }); }
   if (body.action === 'presence') { const username = String(body.username || '').trim().toLowerCase(); if (!USERNAME_RE.test(username)) return res.status(400).json({ error: 'Valid username required.' }); await touchChatPresence(username, body.isTyping === true); return res.json({ ok: true }); }
     if (body.action === 'request-chat') { const requester = String(body.requester || '').trim().toLowerCase(); const recipient = String(body.recipient || '').trim().toLowerCase(); if (!USERNAME_RE.test(requester) || !USERNAME_RE.test(recipient) || requester === recipient) return res.status(400).json({ error: 'Valid users required.' }); if (!await getUser(recipient)) return res.status(404).json({ error: 'User not found.' }); return res.json({ request: await createChatRequest(requester, recipient) }); }
