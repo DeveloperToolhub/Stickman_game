@@ -145,7 +145,7 @@ const chatUsername = String(body.username || '').trim().slice(0, 20) || 'Player'
     if (hasBlockedLanguage) return res.status(422).json({ error: 'Message blocked by the chat safety filter.' });
     // Keep delivery independent from optional AI services. The imported moderation lists above
     // are synchronous, so an unavailable AI provider cannot prevent normal messages from sending.
-    const createdMessage = await createChatMessage(chatUsername, nickname, message); if (!createdMessage) return res.status(429).json({ error: 'Spam detected. Your recent chat messages were deleted. Please slow down.' }); return res.json({ message: createdMessage });
+    let createdMessage; try { createdMessage = await createChatMessage(chatUsername, nickname, message); } catch (error) { console.error('[chat] message write failed:', error); return res.status(503).json({ error: 'Chat storage is temporarily unavailable. Please try again.' }); } if (!createdMessage) return res.status(429).json({ error: 'Spam detected. Your recent chat messages were deleted. Please slow down.' }); return res.json({ message: createdMessage });
     }
 
     if (body.action === 'delete-all-chat-messages') { const auth = String(req.headers.authorization || ''); const sessionUser = auth.startsWith('Bearer ') ? verifySession(auth.slice(7)) : null; const sender = sessionUser && await getUser(sessionUser); if (!sender || sender.role !== 'moderator') return res.status(403).json({ error: 'Moderator access required.' }); const deleted = await deleteAllChatMessages(); return res.json({ deleted }); }
