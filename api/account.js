@@ -10,8 +10,19 @@ const moderationWordFiles = ['moderation-words-1.txt', 'moderation-words-2.txt',
 const normalizeModerationTerm = (value) => String(value).toLocaleLowerCase().normalize('NFKC').replace(/[0@]/g, 'a').replace(/[1!|]/g, 'i').replace(/[3]/g, 'e').replace(/[5$]/g, 's').replace(/[7]/g, 't').replace(/[^a-z0-9]+/g, '');
 const importedModerationTerms = new Set(moderationWordFiles.flatMap((file) => { try { return fs.readFileSync(path.join(__dirname, '..', 'lib', file), 'utf8').split(/\r?\n/).map(normalizeModerationTerm).filter((term) => term.length >= 4); } catch { return []; } }));
 const builtInModerationTerms = ['fuck', 'shit', 'bitch', 'asshole', 'dick', 'penis', 'vagina', 'nigger', 'faggot', 'retard', 'doxx', 'spamword'];
+const ignoredCommonWords = new Set(['hi', 'hey', 'hello', 'hiya', 'howdy', 'yo', 'sup', 'greetings', 'welcome', 'thanks', 'thankyou', 'please', 'goodbye', 'bye', 'goodmorning', 'goodafternoon', 'goodevening', 'goodnight', 'game', 'games', 'chat', 'message', 'messages', 'player', 'players', 'friend', 'friends', 'the', 'this', 'that', 'what', 'when', 'where', 'why', 'how', 'have', 'help', 'are', 'your', 'you', 'with', 'from', 'just', 'like', 'love', 'look', 'good', 'nice', 'awesome', 'okay', 'please', 'thanks', 'thankyou', 'could', 'would', 'want', 'need', 'gg', 'glhf']);
 for (const term of builtInModerationTerms) importedModerationTerms.add(normalizeModerationTerm(term));
-const hasBlockedModerationTerm = (text) => { const normalized = normalizeModerationTerm(text); const exactTokens = String(text).toLocaleLowerCase().normalize('NFKC').split(/[^\p{L}\p{N}]+/u).filter(Boolean); return [...importedModerationTerms].some((term) => term.length >= 4 ? normalized.includes(term) : exactTokens.includes(term)); };
+const hasBlockedModerationTerm = (text) => {
+  const originalTokens = String(text).toLocaleLowerCase().normalize('NFKC').split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  const normalizedTokens = originalTokens.map(normalizeModerationTerm);
+  const compact = normalizedTokens.join('');
+  return [...importedModerationTerms].some((term) => {
+    if (ignoredCommonWords.has(term)) return false;
+    if (term.length < 4) return false;
+    if (normalizedTokens.includes(term)) return true;
+    return term.length >= 6 && compact.includes(term);
+  });
+};
 const { getUser, createUser, updateUser, listUsers, createAdminMessage, listActiveMessages, createAdminMedia, listActiveMedia, grantCoins, grantSecret, listWorldState, setWorldBackground, createChatMessage, listChatMessages, deleteChatMessage, deleteAllChatMessages, createPrivateMessage, listPrivateMessages, createCallSignal, listCallSignals, touchChatPresence, listOnlineUsers, createChatRequest, respondChatRequest, listChatRequests, hasAcceptedChat } = require('../lib/neon-storage');
 
 const USERNAME_RE = /^[A-Za-z0-9_]{3,20}$/;
