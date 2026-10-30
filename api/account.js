@@ -8,7 +8,7 @@ const { generateSecretWords, generateRecoveryCode, normalizeWords, hashSecret, c
 
 const moderationWordFiles = ['moderation-words-1.txt', 'moderation-words-2.txt', 'moderation-words-3.txt'];
 const normalizeModerationTerm = (value) => String(value).toLocaleLowerCase().normalize('NFKC').replace(/[0@]/g, 'a').replace(/[1!|]/g, 'i').replace(/[3]/g, 'e').replace(/[5$]/g, 's').replace(/[7]/g, 't').replace(/[^a-z0-9]+/g, '');
-const importedModerationTerms = new Set(moderationWordFiles.flatMap((file) => { try { return fs.readFileSync(path.join(__dirname, '..', 'lib', file), 'utf8').split(/\r?\n/).map(normalizeModerationTerm).filter((term) => term.length >= 2); } catch { return []; } }));
+const importedModerationTerms = new Set(moderationWordFiles.flatMap((file) => { try { return fs.readFileSync(path.join(__dirname, '..', 'lib', file), 'utf8').split(/\r?\n/).map(normalizeModerationTerm).filter((term) => term.length >= 4); } catch { return []; } }));
 const builtInModerationTerms = ['fuck', 'shit', 'bitch', 'asshole', 'dick', 'penis', 'vagina', 'nigger', 'faggot', 'retard', 'doxx', 'spamword'];
 for (const term of builtInModerationTerms) importedModerationTerms.add(normalizeModerationTerm(term));
 const hasBlockedModerationTerm = (text) => { const normalized = normalizeModerationTerm(text); const exactTokens = String(text).toLocaleLowerCase().normalize('NFKC').split(/[^\p{L}\p{N}]+/u).filter(Boolean); return [...importedModerationTerms].some((term) => term.length >= 4 ? normalized.includes(term) : exactTokens.includes(term)); };
