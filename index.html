@@ -126,6 +126,9 @@
         #unboxing-stage { min-height:100%; padding:clamp(12px,4vh,34px) 0 24px; }
         #unboxing-cards-container { max-height:min(58vh,520px); overflow-y:auto; align-content:center; padding:8px 10px 14px; }
         #unboxing-actions { position:sticky; bottom:10px; z-index:30; pointer-events:auto; padding:8px; border:1px solid rgba(148,163,184,.25); border-radius:16px; background:rgba(15,23,42,.94); box-shadow:0 12px 30px rgba(0,0,0,.45); }
+        #unboxing-cards-container > * { width:clamp(116px,15vw,176px) !important; min-width:0 !important; height:clamp(164px,30vh,250px) !important; }
+        #unboxing-cards-container > * .card-image, #unboxing-cards-container > * img { max-height:58% !important; object-fit:contain; }
+        @media (max-width:640px) { #unboxing-cards-container > * { width:112px !important; height:174px !important; } }
         @media (max-height:620px) { #unboxing-stage { padding-top:10px; } #unboxing-cards-container { max-height:48vh; } #unboxing-actions { margin-top:4px; } }
         @keyframes screenShake { 0%,100% { transform: translate(0,0); } 20% { transform: translate(-8px,4px); } 40% { transform: translate(8px,-4px); } 60% { transform: translate(-6px,2px); } 80% { transform: translate(4px,-2px); } }
         .screen-shake { animation: screenShake .5s linear; }
@@ -1042,6 +1045,13 @@ Which pack costs 10 coins? | Ten Coin Pack</textarea><button id="live-game-creat
               rates: { Common: 0, Uncommon: 0, Rare: 5, Epic: 20, Legendary: 35, Mythic: 40 } }
         ];
 
+        const MONTHLY_EVENT_PACKS = [
+          ['jan', 'January Frostfall Event', 1, '01', '#60a5fa'], ['feb', 'February Heartforge Event', 2, '02', '#fb7185'], ['mar', 'March Bloom Event', 3, '03', '#4ade80'], ['apr', 'April Skybreak Event', 4, '04', '#22d3ee'],
+          ['may', 'May Sunfire Event', 5, '05', '#facc15'], ['jun', 'June Tidebreak Event', 6, '06', '#38bdf8'], ['jul', 'July Starfall Event', 7, '07', '#c084fc'], ['aug', 'August Ember Event', 8, '08', '#fb923c'],
+          ['sep', 'September Harvest Event', 9, '09', '#a3e635'], ['oct', 'October Nightfall Event', 10, '10', '#f97316'], ['nov', 'November Storm Event', 11, '11', '#818cf8'], ['dec', 'December Snowglobe Event', 12, '12', '#e0f2fe']
+        ].map(([id, title, eventMonth, icon, accent]) => ({ id: `event-${id}`, title, eventMonth, eventOnly: true, cost: 900, icon, accent, desc: `Limited ${title.toLowerCase()} pack. It disappears when the month ends.`, themeColor: 'from-slate-700 to-indigo-950', cardsPerPack: 4, rates: { Common: 10, Uncommon: 20, Rare: 30, Epic: 25, Legendary: 12, Mythic: 3 } }));
+        PACKS_DATA.push(...MONTHLY_EVENT_PACKS);
+
         // Procedural Stickman Generators Data (pack-specific pools)
         const CARD_PRESETS = [
             { name: "Iron Recruit", pack: "novice", pose: "Attacking", head: "None", weapon: "Katana", stickColor: "#e5e7eb", auraColor: "#6b7280", ability: "Trains until dawn, every day." },
@@ -1879,9 +1889,11 @@ const reply = document.createElement('button'); reply.type = 'button'; reply.cla
            SHOP & PACK OPENING SIMULATION
            ========================================================================== */
         // Some packs only open on certain days. 0 = Sunday, 1 = Monday ... 6 = Saturday
-        function isPackOpenToday(pack) {
-            return !pack.days || pack.days.includes(new Date().getDay());
-        }
+  function isPackOpenToday(pack) {
+  const now = new Date();
+  if (pack.eventOnly && pack.eventMonth !== now.getMonth() + 1) return false;
+  return !pack.days || pack.days.includes(now.getDay());
+  }
 
         function renderShopPacks() {
             const grid = document.getElementById('pack-grid');
