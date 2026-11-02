@@ -109,7 +109,7 @@
         <button id="music-reset" style="margin-top:6px;background:none;border:0;color:#a5b4fc;font:600 12px Arial,sans-serif;cursor:pointer;padding:0;">Use the built-in track</button>
       </div>
       <div style="border-top:1px solid #1f2937;margin-top:6px;padding-top:6px;">
-        ${row('Low performance mode', 'lowperf-toggle', window.lowPerf)}
+        ${row('Ultra low performance mode', 'lowperf-toggle', window.lowPerf)}
         <p style="font-size:11px;color:#9ca3af;margin:0 0 4px;">Turns off blur, animations, particles, and screen shake. Use this if the game feels slow.</p>
       </div>
       <button id="settings-close" style="width:100%;margin-top:14px;padding:8px;border:0;border-radius:8px;background:#1f2937;color:#9ca3af;cursor:pointer;font:600 12px Arial,sans-serif;">Close</button>
