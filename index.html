@@ -122,6 +122,11 @@
         .pack-burst { animation: packBurst .5s ease-out forwards; }
         @keyframes cardRise { from { opacity: 0; transform: translateY(60px) scale(.7); } to { opacity: 1; transform: none; } }
         .card-rise { animation: cardRise .55s cubic-bezier(.2,.9,.3,1.25) both; }
+        #unboxing-modal { overflow-y:auto; justify-content:flex-start; overscroll-behavior:contain; }
+        #unboxing-stage { min-height:100%; padding:clamp(12px,4vh,34px) 0 24px; }
+        #unboxing-cards-container { max-height:min(58vh,520px); overflow-y:auto; align-content:center; padding:8px 10px 14px; }
+        #unboxing-actions { position:sticky; bottom:10px; z-index:30; pointer-events:auto; padding:8px; border:1px solid rgba(148,163,184,.25); border-radius:16px; background:rgba(15,23,42,.94); box-shadow:0 12px 30px rgba(0,0,0,.45); }
+        @media (max-height:620px) { #unboxing-stage { padding-top:10px; } #unboxing-cards-container { max-height:48vh; } #unboxing-actions { margin-top:4px; } }
         @keyframes screenShake { 0%,100% { transform: translate(0,0); } 20% { transform: translate(-8px,4px); } 40% { transform: translate(8px,-4px); } 60% { transform: translate(-6px,2px); } 80% { transform: translate(4px,-2px); } }
         .screen-shake { animation: screenShake .5s linear; }
 
