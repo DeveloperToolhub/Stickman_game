@@ -106,6 +106,7 @@ module.exports = async (req, res) => {
 const chatUsername = String(body.username || '').trim().slice(0, 20) || 'Player';
     const nickname = String(body.nickname || chatUsername).replace(/[^A-Za-z0-9 _-]/g, '').trim().slice(0, 20) || chatUsername;
     const rawMessage = String(body.message || '').normalize('NFKC').trim().slice(0, 180);
+    const imagePath = typeof body.imagePath === 'string' && /^chat-images\/[A-Za-z0-9._/-]{1,500}$/.test(body.imagePath) ? body.imagePath : null;
     const moderationText = rawMessage.toLocaleLowerCase().replace(/[0@4]/g, 'a').replace(/[1!|]/g, 'i').replace(/[3]/g, 'e').replace(/[5$]/g, 's').replace(/[7]/g, 't').replace(/[^a-z0-9]+/g, '');
     const blockedPatterns = [
       /f+u+c+k/i, /s+h+i+t/i, /b+i+t+c+h/i, /a+s+s+h+o+l+e/i, /d+i+c+k/i, /p+e+n+i+s/i, /v+a+g+i+n+a/i, /b+o+o+b+s?/i, /n+i+p+p+l+e/i, /a+n+u+s/i, /c+o+c+k/i, /c+u+m/i,
@@ -123,7 +124,7 @@ const chatUsername = String(body.username || '').trim().slice(0, 20) || 'Player'
       if (result && result.allow === false) return res.status(422).json({ error: result.reason || 'Message blocked by AI moderation.' });
     }
     // The deterministic safety filter above remains the minimum guard when the AI provider is unavailable.
-    const createdMessage = await createChatMessage(chatUsername, nickname, message); if (!createdMessage) return res.status(429).json({ error: 'Spam detected. Your recent chat messages were deleted. Please slow down.' }); return res.json({ message: createdMessage });
+    const createdMessage = await createChatMessage(chatUsername, nickname, message, imagePath); if (!createdMessage) return res.status(429).json({ error: 'Spam detected. Your recent chat messages were deleted. Please slow down.' }); return res.json({ message: createdMessage });
     }
 
     if (body.action === 'delete-all-chat-messages') { const auth = String(req.headers.authorization || ''); const sessionUser = auth.startsWith('Bearer ') ? verifySession(auth.slice(7)) : null; const sender = sessionUser && await getUser(sessionUser); if (!sender || sender.role !== 'moderator') return res.status(403).json({ error: 'Moderator access required.' }); const deleted = await deleteAllChatMessages(); return res.json({ deleted }); }
