@@ -23,6 +23,7 @@
   },
   "homepage": "https://github.com/DeveloperToolhub/Stickman_game#readme",
   "dependencies": {
+    "@vercel/blob": "^2.8.2",
     "pg": "^8.23.1"
   }
 }
