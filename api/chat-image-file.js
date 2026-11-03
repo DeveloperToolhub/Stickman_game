@@ -1,4 +1,5 @@
 const { get } = require('@vercel/blob');
+const { Readable } = require('node:stream');
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).end();
@@ -11,7 +12,8 @@ module.exports = async function handler(req, res) {
     res.setHeader('Content-Type', result.blob.contentType || 'application/octet-stream');
     res.setHeader('ETag', result.blob.etag);
     res.setHeader('Cache-Control', 'private, no-cache');
-    result.stream.pipe(res);
+    const stream = typeof result.stream?.pipe === 'function' ? result.stream : Readable.fromWeb(result.stream);
+    stream.pipe(res);
   } catch (error) {
     console.error('[chat-image] delivery failed:', error);
     res.status(404).end();
