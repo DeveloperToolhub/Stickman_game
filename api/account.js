@@ -2,7 +2,7 @@
 //   POST /api/account { action: "create", username, password }  -> { words }
 //   POST /api/account { action: "login",  username, password, words } -> { token, username }
 const { generateSecretWords, generateRecoveryCode, normalizeWords, hashSecret, checkSecret, signSession, verifySession } = require('../lib/auth');
-const { getUser, createUser, updateUser, listUsers, createAdminMessage, listActiveMessages, createAdminMedia, listActiveMedia, grantCoins, grantSecret, listWorldState, setWorldBackground, createChatMessage, listChatMessages, deleteChatMessage, deleteAllChatMessages, createPrivateMessage, listPrivateMessages, createCallSignal, listCallSignals, touchChatPresence, listOnlineUsers, createChatRequest, respondChatRequest, listChatRequests, hasAcceptedChat } = require('../lib/neon-storage');
+const { getUser, createUser, updateUser, listUsers, createAdminMessage, listActiveMessages, createAdminMedia, listActiveMedia, grantCoins, grantSecret, listWorldState, setWorldBackground, createChatMessage, listChatMessages, deleteChatMessage, deleteAllChatMessages, createPrivateMessage, listPrivateMessages, createCallSignal, listCallSignals, touchChatPresence, listOnlineUsers, createChatRequest, respondChatRequest, listChatRequests, hasAcceptedChat, createSuggestion, listSuggestions } = require('../lib/neon-storage');
 
 const USERNAME_RE = /^[A-Za-z0-9_]{3,20}$/;
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -102,7 +102,22 @@ module.exports = async (req, res) => {
       return res.json({ world: await setWorldBackground(background, sessionUser) });
     }
 
-    if (body.action === 'chat-message') {
+    if (body.action === 'submit-suggestion') {
+    const username = String(body.username || '').trim().slice(0, 20) || 'Player';
+    const category = String(body.category || 'Idea').trim().slice(0, 40);
+    const title = String(body.title || '').normalize('NFKC').trim().slice(0, 100);
+    const details = String(body.details || '').normalize('NFKC').trim().slice(0, 1000);
+    if (!title || details.length < 10) return res.status(400).json({ error: 'Add a title and at least 10 characters of detail.' });
+    return res.json({ suggestion: await createSuggestion(username, category, title, details) });
+  }
+  if (body.action === 'list-suggestions') {
+    const auth = String(req.headers.authorization || '');
+    const sessionUser = auth.startsWith('Bearer ') ? verifySession(auth.slice(7)) : null;
+    const sender = sessionUser && await getUser(sessionUser);
+    if (!sender || sender.role !== 'moderator') return res.status(403).json({ error: 'Admin access required.' });
+    return res.json({ suggestions: await listSuggestions() });
+  }
+  if (body.action === 'chat-message') {
 const chatUsername = String(body.username || '').trim().slice(0, 20) || 'Player';
     const nickname = String(body.nickname || chatUsername).replace(/[^A-Za-z0-9 _-]/g, '').trim().slice(0, 20) || chatUsername;
     const rawMessage = String(body.message || '').normalize('NFKC').trim().slice(0, 180);
