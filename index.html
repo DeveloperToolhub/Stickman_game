@@ -1012,7 +1012,7 @@ Which pack costs 10 coins? | Ten Coin Pack</textarea><button id="live-game-creat
               rates: { Common: 60, Uncommon: 25, Rare: 10, Epic: 4, Legendary: 1, Mythic: 0 } },
             { id: 'jungle', title: 'Jungle Ruins Pack', cost: 175, icon: '🗿', accent: '#84CC16', desc: 'Temple guardians and vine-wrapped hunters.', themeColor: 'from-lime-600 to-emerald-900', cardsPerPack: 3,
               rates: { Common: 45, Uncommon: 30, Rare: 15, Epic: 7, Legendary: 2.5, Mythic: 0.5 } },
-            { id: 'halloween', title: 'Halloween Spooky Pack', cost: 250, icon: '🎃', accent: '#F97316', desc: 'Pumpkins, Vampires, Skeletons & Grim Reapers!', themeColor: 'from-orange-600 to-purple-800', cardsPerPack: 3,
+            { id: 'halloween', title: 'Halloween Spooky Pack', cost: 250, icon: '🎃', accent: '#F97316', eventMonth: 10, eventOnly: true, desc: 'Pumpkins, Vampires, Skeletons & Grim Reapers!', themeColor: 'from-orange-600 to-purple-800', cardsPerPack: 3,
               rates: { Common: 30, Uncommon: 35, Rare: 20, Epic: 10, Legendary: 4, Mythic: 1 } },
             { id: 'desert', title: 'Sandstorm Sultans Pack', cost: 300, icon: '🐪', accent: '#F59E0B', desc: 'Dune assassins, sand sultans and scarab riders.', themeColor: 'from-amber-500 to-orange-900', cardsPerPack: 3,
               rates: { Common: 25, Uncommon: 35, Rare: 25, Epic: 10, Legendary: 4, Mythic: 1 } },
@@ -1049,8 +1049,9 @@ Which pack costs 10 coins? | Ten Coin Pack</textarea><button id="live-game-creat
         const MONTHLY_EVENT_PACKS = [
           ['jan', 'January Frostfall Event', 1, '01', '#60a5fa'], ['feb', 'February Heartforge Event', 2, '02', '#fb7185'], ['mar', 'March Bloom Event', 3, '03', '#4ade80'], ['apr', 'April Skybreak Event', 4, '04', '#22d3ee'],
           ['may', 'May Sunfire Event', 5, '05', '#facc15'], ['jun', 'June Tidebreak Event', 6, '06', '#38bdf8'], ['jul', 'July Starfall Event', 7, '07', '#c084fc'], ['aug', 'August Ember Event', 8, '08', '#fb923c'],
-          ['sep', 'September Harvest Event', 9, '09', '#a3e635'], ['oct', 'October Nightfall Event', 10, '10', '#f97316'], ['nov', 'November Storm Event', 11, '11', '#818cf8'], ['dec', 'December Snowglobe Event', 12, '12', '#e0f2fe']
-        ].map(([id, title, eventMonth, icon, accent]) => ({ id: `event-${id}`, title, eventMonth, eventOnly: true, cost: 900, icon, accent, desc: `Limited ${title.toLowerCase()} pack. It disappears when the month ends.`, themeColor: 'from-slate-700 to-indigo-950', cardsPerPack: 4, rates: { Common: 10, Uncommon: 20, Rare: 30, Epic: 25, Legendary: 12, Mythic: 3 } }));
+          ['sep', 'September Harvest Event', 9, '09', '#a3e635'], ['oct', 'October Nightfall Event', 10, '10', '#f97316'], ['nov', 'Autumn Harvest Pack', 11, '11', '#b45309'], ['dec', 'December Snowglobe Event', 12, '12', '#e0f2fe']
+        ].map(([id, title, eventMonth, icon, accent]) => ({ id: `event-${id}`, title, eventMonth, eventOnly: true, cost: 900, icon, accent, desc: id === 'nov' ? 'Autumn leaves, harvest guardians, and woodland champions. Available all November.' : `Limited ${title.toLowerCase()} pack. It disappears when the month ends.`, themeColor: id === 'nov' ? 'from-amber-700 via-orange-900 to-stone-950' : id === 'oct' ? 'from-orange-700 via-purple-950 to-black' : 'from-slate-700 to-indigo-950', cardsPerPack: 4, rates: { Common: 10, Uncommon: 20, Rare: 30, Epic: 25, Legendary: 12, Mythic: 3 } }));
+        PACKS_DATA.push({ id: 'thanksgiving', title: 'Thanksgiving Feast Pack', cost: 1100, icon: 'FEAST', accent: '#f59e0b', eventOnly: true, thanksgivingWeek: true, desc: 'A gratitude feast of golden harvest heroes. Available Thanksgiving week only.', themeColor: 'from-amber-500 via-orange-800 to-red-950', cardsPerPack: 5, rates: { Common: 8, Uncommon: 18, Rare: 30, Epic: 25, Legendary: 14, Mythic: 5 } });
         PACKS_DATA.push(...MONTHLY_EVENT_PACKS);
 
         // Procedural Stickman Generators Data (pack-specific pools)
@@ -1091,6 +1092,10 @@ Which pack costs 10 coins? | Ten Coin Pack</textarea><button id="live-game-creat
             { name: "Bonnie", pack: "fnaf", pose: "Attacking", head: "Bonnie Head", weapon: "Guitar", stickColor: "#7c3aed", auraColor: "#a78bfa", ability: "A purple shadow with a midnight riff." },
             { name: "Chica", pack: "fnaf", pose: "Heroic", head: "Chica Head", weapon: "Cupcake", stickColor: "#facc15", auraColor: "#f59e0b", ability: "厨房 lights flicker when she enters." },
             { name: "Foxy", pack: "fnaf", pose: "Attacking", head: "Foxy Head", weapon: "Hook", stickColor: "#b91c1c", auraColor: "#f97316", ability: "Runs from Pirate Cove before the clock strikes six." },
+            { name: "Autumn Warden", pack: "event-nov", pose: "Heroic", head: "Crown", weapon: "Staff", stickColor: "#fbbf24", auraColor: "#b45309", ability: "Calls the falling leaves to battle." },
+            { name: "Maple Ranger", pack: "event-nov", pose: "Ninja", head: "Ninja Headband", weapon: "Saber", stickColor: "#fb923c", auraColor: "#c2410c", ability: "Moves unseen through the harvest woods." },
+            { name: "Harvest Guardian", pack: "thanksgiving", pose: "Heroic", head: "Crown", weapon: "Staff", stickColor: "#fde68a", auraColor: "#92400e", ability: "Protects the feast with gratitude." },
+            { name: "Golden Gatherer", pack: "thanksgiving", pose: "Floating", head: "Wizard Hat", weapon: "Saber", stickColor: "#f59e0b", auraColor: "#b45309", ability: "Turns every thankful wish into gold." },
             { name: "Springtrap", pack: "fnaf", pose: "Floating", head: "Springtrap Head", weapon: "Claw", stickColor: "#65a30d", auraColor: "#84cc16", ability: "Some legends never stay buried." },
             { name: "Golden Freddy", pack: "fnaf", pose: "Floating", head: "Golden Freddy Head", weapon: "None", stickColor: "#eab308", auraColor: "#fef08a", ability: "He appears when the game should have ended." }
         ];
@@ -1893,8 +1898,18 @@ const reply = document.createElement('button'); reply.type = 'button'; reply.cla
            SHOP & PACK OPENING SIMULATION
            ========================================================================== */
         // Some packs only open on certain days. 0 = Sunday, 1 = Monday ... 6 = Saturday
+  function isThanksgivingWeek(date) {
+  if (date.getMonth() !== 10) return false;
+  const firstThursday = 1 + ((4 - new Date(date.getFullYear(), 10, 1).getDay() + 7) % 7);
+  const thanksgiving = new Date(date.getFullYear(), 10, firstThursday + 21);
+  const start = new Date(thanksgiving); start.setDate(thanksgiving.getDate() - 3);
+  const end = new Date(thanksgiving); end.setDate(thanksgiving.getDate() + 3);
+  return date >= start && date <= end;
+  }
+
   function isPackOpenToday(pack) {
   const now = new Date();
+  if (pack.thanksgivingWeek) return isThanksgivingWeek(now);
   if (pack.eventOnly && pack.eventMonth !== now.getMonth() + 1) return false;
   return !pack.days || pack.days.includes(now.getDay());
   }
